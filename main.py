@@ -27,15 +27,12 @@ def printTweetInfo(tweetData):
         print('-'*72);
 
 def main():
-    usr_choice, tw_id = None, None;
+    usr_choice = None;
 
     while (1):
         usr_choice  = input("\nTwitter Tool Options:\n1. Get retweeters\n2. Get likers\n3. Date range\n> ");
-        tw_id       = input("Tweet ID: ");
 
-        if (not tw_id.isdecimal() or not usr_choice.isdecimal()):
-            print("\nError: all inputs must be decimal");
-        elif (usr_choice not in ['1', '2', '3']):
+        if (not usr_choice.isdecimal() or usr_choice not in ['1','2','3']):
             print("\nError: must pick option '1', '2', or '3'");
         else:
             break;
@@ -69,15 +66,25 @@ def main():
         
         # Print retrieved tweets
         printTweetInfo(tweets.data);
-        return 0;
+    else:
+        tw_id = None;
+        while(1):
+            tw_id = input("Tweet ID: ");
 
-    # Get retweeters / likers (depending on user input)
-    users = client.get_retweeters(id=tw_id) if usr_choice == '1' else client.get_liking_users(id=tw_id);
-    if (users.data is None):
-        print("\nError: invalid tweet ID... exiting...");
-        return -1;
+            if(tw_id.isdecimal()):
+                break;
+            else:
+                print("Error: Tweet ID must be decimal...");
 
-    printUserInfo(users.data);
+        # Get retweeters / likers (depending on user input)
+        users = client.get_retweeters(id=tw_id) if usr_choice == '1' else client.get_liking_users(id=tw_id);
+        if (users.data is None):
+            print("\nError: invalid tweet ID... exiting...");
+            return -1;
+
+        # Print retrieved users 
+        printUserInfo(users.data);
+
     return 0;
 
 if __name__ == "__main__":
