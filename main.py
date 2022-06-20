@@ -1,5 +1,7 @@
 import tweepy
 import config
+import sys
+from os.path import exists
 
 '''
 TO DO: Add functionality for use case 2 (get tweets from users within a set time range)
@@ -27,6 +29,41 @@ def printTweetInfo(tweetData):
         print('-'*72);
 
 def main():
+    # Error handling
+    if(len(sys.argv) != 2):
+        print('Error: must provide a file of usernames as input.');
+        return -1;
+
+    path = './' + sys.argv[1];
+    if(exists(path)):
+        usernames = [];
+        
+        # Read all usernames from file
+        with open(path) as fin:
+            while(1):
+                line = fin.readline();
+                if not line:
+                    break;
+                else:
+                    usernames.append(line.rstrip());
+
+        # Get public metrics of each user
+        user_data = client.get_users(usernames=usernames, user_fields='public_metrics');
+
+        # Output each user's up-to-date follower count
+        path = './followers.txt';
+        with open(path, 'w') as fout:
+            for user in user_data.data:
+               fout.write(f'{user.username}:{user.public_metrics["followers_count"]}\n') 
+
+        print('[+] Finished. Program exiting...'); 
+    else:
+        print('Error: input file does not exist.');
+        return -1;
+
+    return 0;
+
+def alt_main():
     usr_choice = None;
 
     while (1):
