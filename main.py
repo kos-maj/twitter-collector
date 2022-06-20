@@ -64,6 +64,7 @@ def main():
     return 0;
 
 def alt_main():
+    # This function is not used (for now), but left here just for reference
     usr_choice = None;
 
     while (1):
