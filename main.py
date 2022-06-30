@@ -14,21 +14,32 @@ to those who have been approved for the Academic Research product track.
 '''
 
 client = tweepy.Client(bearer_token=config.BEARER_TOKEN);
-
-def printUserInfo(userData):
-    print('-'*72);
-    print('| {:20} | {:20} | id'.format('name', 'username'));
-    print('-'*72);
-    for user in userData:
-        print('| {:20.17} | {:20} | {:<32}'.format(user.name, user.username, user.id));
-
-def printTweetInfo(tweetData):
-    for tweet in tweetData:
-        print('-'*72);
-        print(f'id:\t{tweet.id}\ntext:\t{tweet.text}');
-        print('-'*72);
+transactions = []
 
 def main():
+
+    # USER author TWEET         - 
+    # USER follows USER         -
+    # USER replies to TWEET    
+    # USER retweets TWEET       -
+    # USER likes TWEET          -
+
+    # Each user and tweet will have a corresponding ID 
+    # Relationships are mentioned above
+    username = 'Avalanche'
+    tweet_id = '1241519972897247234'
+    likes = client.get_liking_users(id=tweet_id)
+    rts = client.get_retweeters(id=tweet_id)
+
+    user = client.get_user(username=username)
+    user_id = user.data['id'];
+    followers = client.get_users_followers(id=user_id)
+
+    # todo: push these relationships to neo4j (try on one tweet -> one user -> set of users)
+
+def user_input():
+    # Re-name this function to 'main' if you wish to extract follower count of a file with usernames    
+
     # Error handling
     if(len(sys.argv) != 2):
         print('Error: must provide a file of usernames as input.');
@@ -103,7 +114,7 @@ def alt_main():
             return -1;
         
         # Print retrieved tweets
-        printTweetInfo(tweets.data);
+        # printTweetInfo(tweets.data);
     else:
         tw_id = None;
         while(1):
@@ -121,7 +132,7 @@ def alt_main():
             return -1;
 
         # Print retrieved users 
-        printUserInfo(users.data);
+        # printUserInfo(users.data);
 
     return 0;
 
