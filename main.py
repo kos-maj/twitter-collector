@@ -2,6 +2,7 @@ import tweepy
 import config
 import sys
 from os.path import exists
+from neo4j import GraphDatabase
 
 '''
 TO DO: Add functionality for use case 2 (get tweets from users within a set time range)
@@ -14,65 +15,62 @@ to those who have been approved for the Academic Research product track.
 '''
 
 client = tweepy.Client(bearer_token=config.BEARER_TOKEN);
-transactions = []
+transaction_commands = []
 
-def main():
-
-    # USER author TWEET         - 
-    # USER follows USER         -
-    # USER retweets TWEET       -
-    # USER likes TWEET          -
-
-    # TODO: look into USER replies to TWEET relationship
-
-    username = 'naolmb'
-    tweet_id = '917081778078257154'
-    likes = client.get_liking_users(id=tweet_id)
-    rts = client.get_retweeters(id=tweet_id)
-
-    user = client.get_user(username=username)
-    user_id = user.data['id'];
-    followers = client.get_users_followers(id=user_id)
-
-    # Import data into neo4j
-    from neo4j import GraphDatabase
-    transaction_commands = []
-
-    # Create original user and tweet
-    transaction_commands.append(
-        "create (a:User{username:'" + username + "'})-[:AUTHORED]->(b:Tweet{id:'" + tweet_id + "'})"
-        )
-
-    for user in likes.data:
-        # Add each user to graph along with 'like' relationship
-        name = str(user['name']).replace("'", "")
-        creation = "create (:User{username:'" + name + "'})"
-        relation = "match (p:User{username:'" + name + "'}), (t:Tweet{id:'" + tweet_id + "'})\
-             create (p)-[:LIKED]->(t)"
-        transaction_commands.append(creation)
-        transaction_commands.append(relation) 
-    
-    for user in rts.data:
-        name = str(user['name']).replace("'", "")
-        creation = "merge (:User{username:'" + name + "'})"     # use merge in case user already exists in graph
-        relation = "match (p:User{username:'" + name + "'}), (t:Tweet{id:'" + tweet_id + "'})\
-             create (p)-[:RETWEETED]->(t)"
-        transaction_commands.append(creation)
-        transaction_commands.append(relation)
-
-    for user in followers.data:
-        name = str(user['name']).replace("'","")
-        creation = "merge (:User{username:'" + name + "'})"     # use merge in case user already exists in graph
-        relation = "match (p1:User{username:'" + name + "'}), (p2:User{username:'" + username + "'})\
-             create (p1)-[:FOLLOWS]->(p2)"
-        transaction_commands.append(creation)
-        transaction_commands.append(relation)
-
+def exec_transactions():
+    # Connect to neo4j db and execute commands
     uri = "bolt://127.0.0.1:7687"
     db_conn = GraphDatabase.driver(uri, auth=("neo4j", "test"), encrypted=False)
     session = db_conn.session()
     for i in transaction_commands:
         session.run(i)
+
+def create_tweet_relation(name, tweet_id, relation):
+    name    = str(name).replace("'", "")
+    cmd_1   = f"MERGE (:User{{username: '{name}'}})"        # MERGE - in the event that user already exists within neo4j graph
+    cmd_2   = f"MATCH (p:User{{username: '{name}'}}), (t:Tweet{{id: '{tweet_id}'}})\
+                CREATE (p)-[:{relation}]->(t)"
+    
+    transaction_commands.extend([cmd_1, cmd_2])
+
+def create_user_relation(name1, name2):
+    main    = str(name1).replace("'", "")
+    name    = str(name2).replace("'", "")
+    cmd_1   = f"MERGE (:User{{username: '{name}'}})"
+    cmd_2   = f"MATCH (p1:User{{username: '{name}'}}), (p2:User{{username: '{main}'}})\
+                CREATE (p1)-[:FOLLOWS]->(p2)"
+
+    transaction_commands.extend([cmd_1, cmd_2])
+
+def main():
+
+    # TODO: look into USER replies to TWEET relationship
+
+    ### Fetch data from Twitter API
+    username  = 'naolmb'
+    user      = client.get_user(username=username)
+    user_id   = user.data['id']
+    followers = client.get_users_followers(id=user_id)
+
+    tweet_id = '917081778078257154'
+    likes    = client.get_liking_users(id=tweet_id)
+    retweets = client.get_retweeters(id=tweet_id)
+    
+    ### Import data into Neo4j
+    transaction_commands.append(
+        f"CREATE (:User{{username: '{username}'}})-[:AUTHORED]->(:Tweet{{id: '{tweet_id}'}})"
+    )
+
+    for user in likes.data:
+        create_tweet_relation(user['name'], tweet_id, 'LIKED')
+    
+    for user in retweets.data:
+        create_tweet_relation(user['name'], tweet_id, 'RETWEETED')
+
+    for user in followers.data:
+        create_user_relation(username, user['name'])
+
+    exec_transactions()
 
     print('done');
 
