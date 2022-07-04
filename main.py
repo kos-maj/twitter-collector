@@ -45,12 +45,28 @@ def main():
 
     for user in likes.data:
         # Add each user to graph along with 'like' relationship
-        name = user['name']
+        name = str(user['name']).replace("'", "")
         creation = "create (:User{username:'" + name + "'})"
         relation = "match (p:User{username:'" + name + "'}), (t:Tweet{id:'" + tweet_id + "'})\
              create (p)-[:LIKED]->(t)"
         transaction_commands.append(creation)
         transaction_commands.append(relation) 
+    
+    for user in rts.data:
+        name = str(user['name']).replace("'", "")
+        creation = "merge (:User{username:'" + name + "'})"     # use merge in case user already exists in graph
+        relation = "match (p:User{username:'" + name + "'}), (t:Tweet{id:'" + tweet_id + "'})\
+             create (p)-[:RETWEETED]->(t)"
+        transaction_commands.append(creation)
+        transaction_commands.append(relation)
+
+    for user in followers.data:
+        name = str(user['name']).replace("'","")
+        creation = "merge (:User{username:'" + name + "'})"     # use merge in case user already exists in graph
+        relation = "match (p1:User{username:'" + name + "'}), (p2:User{username:'" + username + "'})\
+             create (p1)-[:FOLLOWS]->(p2)"
+        transaction_commands.append(creation)
+        transaction_commands.append(relation)
 
     uri = "bolt://127.0.0.1:7687"
     db_conn = GraphDatabase.driver(uri, auth=("neo4j", "test"), encrypted=False)
