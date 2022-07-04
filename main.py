@@ -20,14 +20,13 @@ def main():
 
     # USER author TWEET         - 
     # USER follows USER         -
-    # USER replies to TWEET    
     # USER retweets TWEET       -
     # USER likes TWEET          -
 
-    # Each user and tweet will have a corresponding ID 
-    # Relationships are mentioned above
-    username = 'Avalanche'
-    tweet_id = '1241519972897247234'
+    # TODO: look into USER replies to TWEET relationship
+
+    username = 'naolmb'
+    tweet_id = '917081778078257154'
     likes = client.get_liking_users(id=tweet_id)
     rts = client.get_retweeters(id=tweet_id)
 
@@ -35,7 +34,31 @@ def main():
     user_id = user.data['id'];
     followers = client.get_users_followers(id=user_id)
 
-    # todo: push these relationships to neo4j (try on one tweet -> one user -> set of users)
+    # Import data into neo4j
+    from neo4j import GraphDatabase
+    transaction_commands = []
+
+    # Create original user and tweet
+    transaction_commands.append(
+        "create (a:User{username:'" + username + "'})-[:AUTHORED]->(b:Tweet{id:'" + tweet_id + "'})"
+        )
+
+    for user in likes.data:
+        # Add each user to graph along with 'like' relationship
+        name = user['name']
+        creation = "create (:User{username:'" + name + "'})"
+        relation = "match (p:User{username:'" + name + "'}), (t:Tweet{id:'" + tweet_id + "'})\
+             create (p)-[:LIKED]->(t)"
+        transaction_commands.append(creation)
+        transaction_commands.append(relation) 
+
+    uri = "bolt://127.0.0.1:7687"
+    db_conn = GraphDatabase.driver(uri, auth=("neo4j", "test"), encrypted=False)
+    session = db_conn.session()
+    for i in transaction_commands:
+        session.run(i)
+
+    print('done');
 
 def user_input():
     # Re-name this function to 'main' if you wish to extract follower count of a file with usernames    
