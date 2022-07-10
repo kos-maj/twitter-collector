@@ -25,19 +25,28 @@ def exec_transactions():
     for i in transaction_commands:
         session.run(i)
 
-def create_tweet_relation(name, tweet_id, relation):
-    name    = str(name).replace("'", "")
-    cmd_1   = f"MERGE (:User{{username: '{name}'}})"        # MERGE - in the event that user already exists within neo4j graph
-    cmd_2   = f"MATCH (p:User{{username: '{name}'}}), (t:Tweet{{id: '{tweet_id}'}})\
+def create_tweet_relation(user, tweet_id, relation):
+    username = str(user['username']).replace("'", "")
+    name     = str(user['name']).replace("'", "")
+    cmd_1    = f"MERGE (:Follower{{\
+                    username: '{username}',\
+                    user_id: '{user['id']}',\
+                    name: '{name}'\
+                }})"            
+    cmd_2   = f"MATCH (p:Follower{{username: '{username}'}}), (t:Tweet{{id: '{tweet_id}'}})\
                 CREATE (p)-[:{relation}]->(t)"
     
     transaction_commands.extend([cmd_1, cmd_2])
 
-def create_user_relation(name1, name2):
-    main    = str(name1).replace("'", "")
-    name    = str(name2).replace("'", "")
-    cmd_1   = f"MERGE (:User{{username: '{name}'}})"
-    cmd_2   = f"MATCH (p1:User{{username: '{name}'}}), (p2:User{{username: '{main}'}})\
+def create_follows_relation(user, main_username):
+    username = str(user['username']).replace("'", "")
+    name     = str(user['name']).replace("'", "")
+    cmd_1    = f"MERGE (:Follower{{\
+                    username: '{username}',\
+                    user_id: '{user['id']}',\
+                    name: '{name}'\
+                }})"            
+    cmd_2   = f"MATCH (p1:Follower{{username: '{username}'}}), (p2:User{{username: '{main_username}'}})\
                 CREATE (p1)-[:FOLLOWS]->(p2)"
 
     transaction_commands.extend([cmd_1, cmd_2])
@@ -48,7 +57,10 @@ def main():
 
     ### Fetch data from Twitter API
     username  = 'naolmb'
-    user      = client.get_user(username=username)
+    user      = client.get_user(
+        username=username, 
+        user_fields=['created_at', 'description', 'location', 'protected', 'public_metrics']
+    )
     user_id   = user.data['id']
     followers = client.get_users_followers(id=user_id)
 
@@ -58,17 +70,26 @@ def main():
     
     ### Import data into Neo4j
     transaction_commands.append(
-        f"CREATE (:User{{username: '{username}'}})-[:AUTHORED]->(:Tweet{{id: '{tweet_id}'}})"
+        # id, name, username, follower count, location, protected
+        f"CREATE (:User{{\
+            username: '{username}',\
+            user_id: '{user.data['id']}',\
+            name: '{user.data['name']}',\
+            follower_count: '{user.data['public_metrics']['followers_count']}'\
+            following_count: '{user.data['public_metrics']['following_count']}'\
+            tweet_count: '{user.data['public_metrics']['tweet_count']}'\
+            protected: '{user.data['protected']}'\
+            }})-[:AUTHORED]->(:Tweet{{id: '{tweet_id}'}})"
     )
 
     for user in likes.data:
-        create_tweet_relation(user['name'], tweet_id, 'LIKED')
+        create_tweet_relation(user, tweet_id, 'LIKED')
     
     for user in retweets.data:
-        create_tweet_relation(user['name'], tweet_id, 'RETWEETED')
+        create_tweet_relation(user, tweet_id, 'RETWEETED')
 
     for user in followers.data:
-        create_user_relation(username, user['name'])
+        create_follows_relation(user, username)
 
     exec_transactions()
 
