@@ -75,12 +75,16 @@ def main():
             username: '{username}',\
             user_id: '{user.data['id']}',\
             name: '{user.data['name']}',\
-            follower_count: '{user.data['public_metrics']['followers_count']}'\
-            following_count: '{user.data['public_metrics']['following_count']}'\
-            tweet_count: '{user.data['public_metrics']['tweet_count']}'\
-            protected: '{user.data['protected']}'\
+            follower_count: '{user.data['public_metrics']['followers_count']}',\
+            following_count: '{user.data['public_metrics']['following_count']}',\
+            tweet_count: '{user.data['public_metrics']['tweet_count']}',\
+            protected: '{user.data['protected']}',\
+            created_on: ' {str(user.data['created_at'])[0:10]}'\
             }})-[:AUTHORED]->(:Tweet{{id: '{tweet_id}'}})"
     )
+
+    exec_transactions();
+    print('done');
 
     for user in likes.data:
         create_tweet_relation(user, tweet_id, 'LIKED')
