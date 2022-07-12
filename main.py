@@ -38,11 +38,11 @@ def create_tweet_relation(user, tweet_id, relation):
                     name: "{name}"\
                 }})'''
     cmd_2   = f'''MATCH (p:Follower{{username: "{username}"}}), (t:Tweet{{id: "{tweet_id}"}})\
-                CREATE (p)-[:{relation}]->(t);
-                MATCH (p:User{{username: "{username}"}}), (t:Tweet{{id: "{tweet_id}"}})\
-                create (p)->[:{relation}]->(t);'''
+                CREATE (p)-[:{relation}]->(t)'''
+    cmd_3   = f'''MATCH (p:User{{username: "{username}"}}), (t:Tweet{{id: "{tweet_id}"}})\
+                CREATE (p)-[:{relation}]->(t)'''
     
-    transaction_commands.extend([cmd_1, cmd_2])
+    transaction_commands.extend([cmd_1, cmd_2, cmd_3])
 
 def create_follows_relation(user, main_username):
     username = str(user['username']).replace('"', '')
@@ -53,11 +53,11 @@ def create_follows_relation(user, main_username):
                     name: "{name}"\
                 }})'''            
     cmd_2   = f'''MATCH (p1:Follower{{username: "{username}"}}), (p2:User{{username: "{main_username}"}})\
-                CREATE (p1)-[:FOLLOWS]->(p2);
-                MATCH (p1:User{{username: "{username}"}}), (p2:User{{username: "{main_username}"}}\
-                CREATE (p1)-[:FOLLOWS]->(p2);'''
+                CREATE (p1)-[:FOLLOWS]->(p2)'''
+    cmd_3   = f'''MATCH (p1:User{{username: "{username}"}}), (p2:User{{username: "{main_username}"}})\
+                CREATE (p1)-[:FOLLOWS]->(p2)'''
 
-    transaction_commands.extend([cmd_1, cmd_2])
+    transaction_commands.extend([cmd_1, cmd_2, cmd_3])
 
 def extract_users(users: list):
     # Extracts the usernames provided at the given path. Assumes each username is seperated by a newline character.
@@ -97,7 +97,7 @@ def main():
     # if(extract_users(base_usernames)):
         # return -1
 
-    base_usernames = ['TenchiNFT']
+    base_usernames = ['TenchiNFT', 'HeDatBobo']
 
     for username in base_usernames:
         user      = client.get_user(
