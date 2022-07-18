@@ -93,7 +93,7 @@ def main():
     session = db_conn.session()
 
     ### Extract usernames from file provided
-    base_usernames = []
+    # base_usernames = []
     # if(extract_users(base_usernames)):
         # return -1
 
@@ -125,8 +125,8 @@ def main():
 
         # Import followers
         followers = client.get_users_followers(id=user.data['id'])
-        for user in followers.data:
-            create_follows_relation(user, username)
+        for follower in followers.data:
+            create_follows_relation(follower, username)
     
         # Import recent tweets (if existent)
         recent_tweets = client.search_recent_tweets(query=f'from:{username}')
@@ -135,9 +135,10 @@ def main():
             for tweet in recent_tweets.data:
                 # Add tweet and authored by relation in neo4j
                 tweet_id = tweet['id']
+                text     = str(tweet['text']).replace('"', "'")
                 transaction_commands.append(
                     f'''MERGE (u:User{{username: "{username}"}})\
-                      MERGE (t:Tweet{{id: "{tweet_id}", text: "{tweet['text']}"}})\
+                      MERGE (t:Tweet{{id: "{tweet_id}", text: "{text}"}})\
                       CREATE (u)-[:AUTHORED]->(t)'''
                 ) 
 
@@ -150,9 +151,9 @@ def main():
                 if retweets.data:
                     for tmp_user in retweets.data:
                         create_tweet_relation(tmp_user, tweet_id, 'RETWEETED')
-    
-        exec_transactions(session)
 
+        exec_transactions(session)
+             
     print("[+] Program finished.")
     return 0;
     ### Fetch data from Twitter API
