@@ -97,7 +97,15 @@ def main():
     # if(extract_users(base_usernames)):
         # return -1
 
-    base_usernames = ['fairywinnn', 'Lucky_Mee_15', 'TenchiNFT']
+    # user      = client.get_user(
+                    # username='TenchiNFT', 
+                    # user_fields=['created_at', 'description', 'location', 'protected', 'public_metrics']
+                # )
+    # followers = client.get_users_followers(id=user.data['id'])
+    # print('done')
+
+
+    base_usernames = ['BarlieFt', 'seobigwin', 'TenchiNFT']
     for username in base_usernames:
         user      = client.get_user(
                         username=username, 
