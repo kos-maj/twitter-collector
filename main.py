@@ -97,8 +97,7 @@ def main():
     # if(extract_users(base_usernames)):
         # return -1
 
-    base_usernames = ['TenchiNFT', 'HeDatBobo']
-
+    base_usernames = ['fairywinnn', 'Lucky_Mee_15', 'TenchiNFT']
     for username in base_usernames:
         user      = client.get_user(
                         username=username, 
@@ -156,49 +155,6 @@ def main():
              
     print("[+] Program finished.")
     return 0;
-    ### Fetch data from Twitter API
-    username  = 'naolmb'
-    user      = client.get_user(
-        username=username, 
-        user_fields=['created_at', 'description', 'location', 'protected', 'public_metrics']
-    )
-    user_id   = user.data['id']
-    followers = client.get_users_followers(id=user_id)
-
-    tweet_id = '917081778078257154'
-    likes    = client.get_liking_users(id=tweet_id)
-    retweets = client.get_retweeters(id=tweet_id)
-    
-    ### Import data into Neo4j
-    transaction_commands.append(
-        # id, name, username, follower count, location, protected
-        f"CREATE (:User{{\
-            username: '{username}',\
-            user_id: '{user.data['id']}',\
-            name: '{user.data['name']}',\
-            follower_count: '{user.data['public_metrics']['followers_count']}',\
-            following_count: '{user.data['public_metrics']['following_count']}',\
-            tweet_count: '{user.data['public_metrics']['tweet_count']}',\
-            protected: '{user.data['protected']}',\
-            created_on: ' {str(user.data['created_at'])[0:10]}'\
-            }})-[:AUTHORED]->(:Tweet{{id: '{tweet_id}'}})"
-    )
-
-    exec_transactions();
-    print('done');
-
-    for user in likes.data:
-        create_tweet_relation(user, tweet_id, 'LIKED')
-    
-    for user in retweets.data:
-        create_tweet_relation(user, tweet_id, 'RETWEETED')
-
-    for user in followers.data:
-        create_follows_relation(user, username)
-
-    exec_transactions()
-
-    print('done');
 
 def user_input():
     # Re-name this function to 'main' if you wish to extract follower count of a file with usernames    
