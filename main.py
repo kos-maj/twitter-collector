@@ -99,19 +99,33 @@ def main():
     i = 0;
     for tweet in data['data']:
         tid  = tweet['id']
-        text = str(tweet['text']).replace('"', "'")
 
-        # Push tweet data
+        # Format text bodies
+        text = str(tweet['text']).replace('"', "'")
+        auth_description = str(tweet['author']['description']).replace('"', "'")
+
+        # Push tweet and author data
         transaction_commands.append(
-            f'''MERGE (:Tweet{{\
-                created_at: "{tweet['created_at']}", \
-                author_id: "{tweet['author_id']}", \
-                retweets: "{tweet['public_metrics']['retweet_count']}", \
-                replies: "{tweet['public_metrics']['reply_count']}", \
-                likes: "{tweet['public_metrics']['like_count']}", \
-                quotes: "{tweet['public_metrics']['quote_count']}", \
-                text: "{text}", \
-                id: "{tid}"}})'''
+            f'''MERGE (t:Tweet{{\
+                    created_at: "{tweet['created_at']}", \
+                    author_id: "{tweet['author_id']}", \
+                    retweets: "{tweet['public_metrics']['retweet_count']}", \
+                    replies: "{tweet['public_metrics']['reply_count']}", \
+                    likes: "{tweet['public_metrics']['like_count']}", \
+                    quotes: "{tweet['public_metrics']['quote_count']}", \
+                    text: "{text}", \
+                    id: "{tid}"}})
+                MERGE (a:Author{{\
+                    id: "{tweet['author']['id']}", \
+                    name: "{tweet['author']['name']}", \
+                    username: "{tweet['author']['username']}", \
+                    location: "{tweet['author']['location']}", \
+                    description: "{auth_description}", \
+                    followers: "{tweet['author']['public_metrics']['followers_count']}", \
+                    following: "{tweet['author']['public_metrics']['following_count']}", \
+                    tweet_count: "{tweet['author']['public_metrics']['tweet_count']}", \
+                    listed_count: "{tweet['author']['public_metrics']['listed_count']}"}})
+                CREATE (a)-[:AUTHORED]->(t)'''
         )
 
         # Push data regarding mentioned users/people/places
@@ -137,7 +151,6 @@ def main():
                             CREATE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
                     )        
 
-        # Push author data
 
 
 
