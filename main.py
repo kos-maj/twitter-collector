@@ -1,15 +1,15 @@
-import tweepy
 import config
 import sys
+import json
 from os.path import exists
-from neo4j import GraphDatabase
+# from neo4j import GraphDatabase
 
 '''
 TO DO: Create network out of json data file (entities, relationships, etc.)
 TO DO: Test centrality algorithms on the aforementioned networks
 '''
 
-client = tweepy.Client(bearer_token=config.BEARER_TOKEN);
+# client = tweepy.Client(bearer_token=config.BEARER_TOKEN);
 transaction_commands = []
 
 def exec_transactions(session):
@@ -79,15 +79,20 @@ def extract_users(users: list):
         print('Error: input file does not exist.');
         exit();
 
+def format_json(path, newpath):
+    with open(path) as f:
+        data = json.load(f)
+    
+    with open(newpath, 'w') as f:
+        json.dump(data, f, indent=2)
+
 def main():
 
-    # TODO: look into USER replies to TWEET relationship
+    # uri = "bolt://127.0.0.1:7687"
+    # db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
+    # session = db_conn.session()
 
-    uri = "bolt://127.0.0.1:7687"
-    db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
-    session = db_conn.session()
 
-             
     print("[+] Program finished.")
     return 0;
 
