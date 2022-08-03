@@ -2,11 +2,12 @@ import config
 import sys
 import json
 from os.path import exists
-# from neo4j import GraphDatabase
+from neo4j import GraphDatabase
 
 '''
 TO DO: Create network out of json data file (entities, relationships, etc.)
 TO DO: Test centrality algorithms on the aforementioned networks
+TO DO: Incorporate referenced tweets
 '''
 
 # client = tweepy.Client(bearer_token=config.BEARER_TOKEN);
@@ -88,10 +89,63 @@ def format_json(path, newpath):
 
 def main():
 
-    # uri = "bolt://127.0.0.1:7687"
-    # db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
-    # session = db_conn.session()
+    uri = "bolt://127.0.0.1:7687"
+    db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
+    session = db_conn.session()
+    
+    with open('tweets_2021-10-13T04_41_13.json') as f:
+        data = json.load(f)
+    
+    i = 0;
+    for tweet in data['data']:
+        tid  = tweet['id']
+        text = str(tweet['text']).replace('"', "'")
 
+        # Push tweet data
+        transaction_commands.append(
+            f'''MERGE (:Tweet{{\
+                created_at: "{tweet['created_at']}", \
+                author_id: "{tweet['author_id']}", \
+                retweets: "{tweet['public_metrics']['retweet_count']}", \
+                replies: "{tweet['public_metrics']['reply_count']}", \
+                likes: "{tweet['public_metrics']['like_count']}", \
+                quotes: "{tweet['public_metrics']['quote_count']}", \
+                text: "{text}", \
+                id: "{tid}"}})'''
+        )
+
+        # Push data regarding mentioned users/people/places
+        if 'entities' in tweet: 
+            if 'mentions' in tweet['entities']:
+                for user in tweet['entities']['mentions']:
+                    uid = user['id']
+    
+                    # Add the following transaction to the queue
+                    transaction_commands.append(
+                        f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
+                            MERGE (t:Tweet {{id: "{tid}"}}) \
+                            CREATE (t)-[:MENTIONS]->(u)'''
+                    )
+            
+            if 'annotations' in tweet['entities']:
+                for annotation in tweet['entities']['annotations']:
+                    
+                    # Add the following transcations to the queue
+                    transaction_commands.append(
+                        f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
+                            MERGE (t:Tweet {{id: "{tid}"}}) \
+                            CREATE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
+                    )        
+
+        # Push author data
+
+
+
+        if i >= 3:
+            exec_transactions(session)
+            break
+        
+        i+=1
 
     print("[+] Program finished.")
     return 0;
