@@ -1,12 +1,13 @@
 import config
 import sys
 import json
-from os.path import exists
+import os
 from neo4j import GraphDatabase
 
 '''
 TO DO: Create network out of json data file (entities, relationships, etc.)
 TO DO: Test centrality algorithms on the aforementioned networks
+TO DO: read multiple files/directories
 TO DO: Incorporate referenced tweets -- DONE
 '''
 
@@ -105,84 +106,93 @@ def extract_metrics(tweet):
 
 def main():
 
-    uri = "bolt://127.0.0.1:7687"
-    db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
-    session = db_conn.session()
-    
-    with open('tweets_2021-10-13T04_41_13.json') as f:
-        data = json.load(f)
-    
-    i = 0;
-    for tweet in data['data']:
-        tid  = tweet['id']
+    # uri = "bolt://127.0.0.1:7687"
+    # db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
+    # session = db_conn.session()
 
-        # Format text bodies
-        text = str(tweet['text']).replace('"', "'")
-        auth_description = str(tweet['author']['description']).replace('"', "'")
+    # Change directory to folder containing afghan data
+    cwd = os.getcwd()
+    path = f"{cwd}/data"
+    os.chdir(path)
 
-        # Push tweet and author data
-        transaction_commands.append(
-            f'''MERGE (t:Tweet{{\
-                    created_at: "{tweet['created_at']}", \
-                    author_id: "{tweet['author_id']}", \
-                    retweets: "{tweet['public_metrics']['retweet_count']}", \
-                    replies: "{tweet['public_metrics']['reply_count']}", \
-                    likes: "{tweet['public_metrics']['like_count']}", \
-                    quotes: "{tweet['public_metrics']['quote_count']}", \
-                    text: "{text}", \
-                    id: "{tid}"}})
-                MERGE (a:User{{\
-                    id: "{tweet['author']['id']}", \
-                    name: "{tweet['author']['name']}", \
-                    username: "{tweet['author']['username']}", \
-                    location: "{tweet['author']['location']}", \
-                    description: "{auth_description}", \
-                    followers: "{tweet['author']['public_metrics']['followers_count']}", \
-                    following: "{tweet['author']['public_metrics']['following_count']}", \
-                    tweet_count: "{tweet['author']['public_metrics']['tweet_count']}", \
-                    listed_count: "{tweet['author']['public_metrics']['listed_count']}"}})
-                CREATE (a)-[:AUTHORED]->(t)'''
-        )
-
-        # Push data regarding mentioned users/people/places
-        if 'entities' in tweet: 
-            if 'mentions' in tweet['entities']:
-                for user in tweet['entities']['mentions']:
-                    uid = user['id']
-    
-                    # Add the following transaction to the queue
-                    transaction_commands.append(
-                        f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
-                            MERGE (t:Tweet {{id: "{tid}"}}) \
-                            CREATE (t)-[:MENTIONS]->(u)'''
-                    )
+    for file in os.listdir():
+        f_path = f"{path}/{file}" if file.endswith(".json") else None
+        if f_path is not None:
             
-            if 'annotations' in tweet['entities']:
-                for annotation in tweet['entities']['annotations']:
+            # Read data from json file
+            with open (f_path, 'r') as f:
+                data = json.load(f)
+
+            for tweet in data['data']:
+                tid  = tweet['id']
+        
+                # Format text bodies
+                text = str(tweet['text']).replace('"', "'")
+                auth_description = str(tweet['author']['description']).replace('"', "'")
+        
+                # Push tweet and author data
+                transaction_commands.append(
+                    f'''MERGE (t:Tweet{{\
+                            created_at: "{tweet['created_at']}", \
+                            author_id: "{tweet['author_id']}", \
+                            retweets: "{tweet['public_metrics']['retweet_count']}", \
+                            replies: "{tweet['public_metrics']['reply_count']}", \
+                            likes: "{tweet['public_metrics']['like_count']}", \
+                            quotes: "{tweet['public_metrics']['quote_count']}", \
+                            text: "{text}", \
+                            id: "{tid}"}})
+                        MERGE (a:User{{\
+                            id: "{tweet['author']['id']}", \
+                            name: "{tweet['author']['name']}", \
+                            username: "{tweet['author']['username']}", \
+                            location: "{tweet['author']['location']}", \
+                            description: "{auth_description}", \
+                            followers: "{tweet['author']['public_metrics']['followers_count']}", \
+                            following: "{tweet['author']['public_metrics']['following_count']}", \
+                            tweet_count: "{tweet['author']['public_metrics']['tweet_count']}", \
+                            listed_count: "{tweet['author']['public_metrics']['listed_count']}"}})
+                        CREATE (a)-[:AUTHORED]->(t)'''
+                )
+        
+                # Push data regarding mentioned users/people/places
+                if 'entities' in tweet: 
+                    if 'mentions' in tweet['entities']:
+                        for user in tweet['entities']['mentions']:
+                            uid = user['id']
+            
+                            # Add the following transaction to the queue
+                            transaction_commands.append(
+                                f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
+                                    MERGE (t:Tweet {{id: "{tid}"}}) \
+                                    CREATE (t)-[:MENTIONS]->(u)'''
+                            )
                     
-                    # Add the following transcations to the queue
-                    transaction_commands.append(
-                        f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
-                            MERGE (t:Tweet {{id: "{tid}"}}) \
-                            CREATE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
-                    )        
-
-        # Push data regarding referenced tweets
-        if 'referenced_tweets' in tweet:
-            for ref_tweet in tweet['referenced_tweets']:
-                if 'text' in ref_tweet:
-                    extract_metrics(ref_tweet)
-                    extract_entities(ref_tweet)
-                    transaction_commands.append(
-                        f'''MATCH (original:Tweet {{id: "{tid}"}}), (new:Tweet {{id: "{ref_tweet['id']}"}})\
-                            CREATE (original)-[:{ref_tweet['type']}]->(new)''' 
-                    )
-
-        # Execute transactions in neo4j every 80 iterations
-        i += 1;
-        if i % 80 == 0:
-            exec_transactions(session)
-            i = 0
+                    if 'annotations' in tweet['entities']:
+                        for annotation in tweet['entities']['annotations']:
+                            
+                            # Add the following transcations to the queue
+                            transaction_commands.append(
+                                f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
+                                    MERGE (t:Tweet {{id: "{tid}"}}) \
+                                    CREATE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
+                            )        
+        
+                # Push data regarding referenced tweets
+                if 'referenced_tweets' in tweet:
+                    for ref_tweet in tweet['referenced_tweets']:
+                        if 'text' in ref_tweet:
+                            extract_metrics(ref_tweet)
+                            extract_entities(ref_tweet)
+                            transaction_commands.append(
+                                f'''MATCH (original:Tweet {{id: "{tid}"}}), (new:Tweet {{id: "{ref_tweet['id']}"}})\
+                                    CREATE (original)-[:{ref_tweet['type']}]->(new)''' 
+                            )
+        
+                # Execute transactions in neo4j every 80 iterations
+                i += 1;
+                if i % 80 == 0:
+                    exec_transactions(session)
+                    i = 0
         
     print("[+] Program finished.")
     return 0;
