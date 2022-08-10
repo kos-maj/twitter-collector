@@ -73,7 +73,7 @@ def extract_entities(tweet):
                 transaction_commands.append(
                     f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
                         MERGE (t:Tweet {{id: "{tweet['id']}"}}) \
-                        CREATE (t)-[:MENTIONS]->(u)'''
+                        MERGE (t)-[:MENTIONS]->(u)'''
                 )
         
         if 'annotations' in tweet['entities']:
@@ -83,7 +83,7 @@ def extract_entities(tweet):
                 transaction_commands.append(
                     f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
                         MERGE (t:Tweet {{id: "{tweet['id']}"}}) \
-                        CREATE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
+                        MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
                 )
 
 def extract_metrics(tweet):
@@ -100,15 +100,15 @@ def extract_metrics(tweet):
                 text: "{text}", \
                 id: "{tweet['id']}"}})
             MERGE (a:User {{id: "{tweet['author_id']}"}})
-            CREATE (a)-[:AUTHORED]->(t)'''
+            MERGE (a)-[:AUTHORED]->(t)'''
     )
     
 
 def main():
 
-    # uri = "bolt://127.0.0.1:7687"
-    # db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
-    # session = db_conn.session()
+    uri = "bolt://127.0.0.1:7687"
+    db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
+    session = db_conn.session()
 
     # Change directory to folder containing afghan data
     cwd = os.getcwd()
@@ -151,7 +151,7 @@ def main():
                             following: "{tweet['author']['public_metrics']['following_count']}", \
                             tweet_count: "{tweet['author']['public_metrics']['tweet_count']}", \
                             listed_count: "{tweet['author']['public_metrics']['listed_count']}"}})
-                        CREATE (a)-[:AUTHORED]->(t)'''
+                        MERGE (a)-[:AUTHORED]->(t)'''
                 )
         
                 # Push data regarding mentioned users/people/places
@@ -164,7 +164,7 @@ def main():
                             transaction_commands.append(
                                 f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
                                     MERGE (t:Tweet {{id: "{tid}"}}) \
-                                    CREATE (t)-[:MENTIONS]->(u)'''
+                                    MERGE (t)-[:MENTIONS]->(u)'''
                             )
                     
                     if 'annotations' in tweet['entities']:
@@ -174,7 +174,7 @@ def main():
                             transaction_commands.append(
                                 f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
                                     MERGE (t:Tweet {{id: "{tid}"}}) \
-                                    CREATE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
+                                    MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
                             )        
         
                 # Push data regarding referenced tweets
@@ -185,7 +185,7 @@ def main():
                             extract_entities(ref_tweet)
                             transaction_commands.append(
                                 f'''MATCH (original:Tweet {{id: "{tid}"}}), (new:Tweet {{id: "{ref_tweet['id']}"}})\
-                                    CREATE (original)-[:{ref_tweet['type']}]->(new)''' 
+                                    MERGE (original)-[:{ref_tweet['type']}]->(new)''' 
                             )
         
                 # Execute transactions in neo4j every 80 iterations

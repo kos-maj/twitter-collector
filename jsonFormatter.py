@@ -5,7 +5,7 @@ import os
 
 def main():
     cwd = os.getcwd()
-    path = f"{cwd}/tester"
+    path = f"{cwd}/data"
     os.chdir(path)
 
     for file in os.listdir():
@@ -25,12 +25,12 @@ def main():
             with open(f_path, "w") as f:
                 length = len(lines)
                 for index, line in enumerate(lines):
-                    if index == 0 or index == length-1:
+                    if index == 0 or index == length-1 or index == length-2:
                         print(line, file=f)
                     else:
                         print(line + ',', file=f)
 
-    print('All files formatted.')
+    print('[+] All files formatted successfully...')
 
 if __name__ == "__main__":
     main()
