@@ -123,6 +123,7 @@ def main():
             with open (f_path, 'r') as f:
                 data = json.load(f)
 
+            count = 0
             for tweet in data['data']:
                 tid  = tweet['id']
         
@@ -189,10 +190,10 @@ def main():
                             )
         
                 # Execute transactions in neo4j every 80 iterations
-                i += 1;
-                if i % 80 == 0:
+                count += 1;
+                if count % 80 == 0:
                     exec_transactions(session)
-                    i = 0
+                    count = 0
         
     print("[+] Program finished.")
     return 0;
