@@ -130,7 +130,9 @@ def main():
                 # Format text bodies
                 text = str(tweet['text']).replace('"', "'")
                 auth_description = str(tweet['author']['description']).replace('"', "'")
-        
+
+                location = tweet['author']['location'] if 'location' in tweet['author'] else 'N/A'
+
                 # Push tweet and author data
                 transaction_commands.append(
                     f'''MERGE (t:Tweet{{\
@@ -146,7 +148,7 @@ def main():
                             id: "{tweet['author']['id']}", \
                             name: "{tweet['author']['name']}", \
                             username: "{tweet['author']['username']}", \
-                            location: "{tweet['author']['location']}", \
+                            location: "{location}", \
                             description: "{auth_description}", \
                             followers: "{tweet['author']['public_metrics']['followers_count']}", \
                             following: "{tweet['author']['public_metrics']['following_count']}", \
