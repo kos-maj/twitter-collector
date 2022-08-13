@@ -5,9 +5,10 @@ import os
 from neo4j import GraphDatabase
 
 '''
-TO DO: Create network out of json data file (entities, relationships, etc.)
-TO DO: Test centrality algorithms on the aforementioned networks
-TO DO: read multiple files/directories
+TO DO: Create network out of json data file (entities, relationships, etc.) -- DONE
+TO DO: test centrality algorithms on the aforementioned networks
+TO DO: implement run pageRank algorithm
+TO DO: read multiple files/directories -- DONE
 TO DO: Incorporate referenced tweets -- DONE
 '''
 
@@ -95,14 +96,12 @@ def extract_metrics(conn: NeoConnection, tweet):
             MERGE (a:User {{id: "{tweet['author_id']}"}})
             MERGE (a)-[:AUTHORED]->(t)'''
     )
-    
-def main():
 
-    g_conn = NeoConnection(uri = "bolt://127.0.0.1:7687", user = "neo4j", pwd = "testing123")
+def push_data(conn:NeoConnection, folderpath):
 
     # Change directory to folder containing afghan data
     cwd = os.getcwd()
-    path = f"{cwd}/data"
+    path = f"{cwd}/{folderpath}"
     os.chdir(path)
 
     for file in os.listdir():
@@ -124,7 +123,7 @@ def main():
                 location = tweet['author']['location'] if 'location' in tweet['author'] else 'N/A'
 
                 # Push tweet and author data
-                g_conn.add_transactions(
+                conn.add_transactions(
                     f'''MERGE (t:Tweet{{\
                             created_at: "{tweet['created_at']}", \
                             author_id: "{tweet['author_id']}", \
@@ -154,7 +153,7 @@ def main():
                             uid = user['id']
             
                             # Add the following transaction to the queue
-                            g_conn.add_transactions(
+                            conn.add_transactions(
                                 f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
                                     MERGE (t:Tweet {{id: "{tid}"}}) \
                                     MERGE (t)-[:MENTIONS]->(u)'''
@@ -163,7 +162,7 @@ def main():
                     if 'annotations' in tweet['entities']:
                         for annotation in tweet['entities']['annotations']:
                             
-                            g_conn.add_transactions(
+                            conn.add_transactions(
                                 f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
                                     MERGE (t:Tweet {{id: "{tid}"}}) \
                                     MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
@@ -173,9 +172,9 @@ def main():
                 if 'referenced_tweets' in tweet:
                     for ref_tweet in tweet['referenced_tweets']:
                         if 'text' in ref_tweet:
-                            extract_metrics(g_conn, ref_tweet)
-                            extract_entities(g_conn, ref_tweet)
-                            g_conn.add_transactions(
+                            extract_metrics(conn, ref_tweet)
+                            extract_entities(conn, ref_tweet)
+                            conn.add_transactions(
                                 f'''MATCH (original:Tweet {{id: "{tid}"}}), (new:Tweet {{id: "{ref_tweet['id']}"}})\
                                     MERGE (original)-[:{ref_tweet['type']}]->(new)''' 
                             )
@@ -183,12 +182,30 @@ def main():
                 # Execute transactions in neo4j every 80 iterations
                 count += 1;
                 if count % 80 == 0:
-                    g_conn.exec_transactions()
+                    conn.exec_transactions()
                     count = 0
 
-    g_conn.close() 
+def run_pageRank(conn: NeoConnection):
+    pass
+
+def main():
+
+    skipDataPush = False
+    g_conn = NeoConnection(uri = "bolt://127.0.0.1:7687", user = "neo4j", pwd = "testing123")
+    
+    for arg in sys.argv:
+        if(arg == '-s'):
+            skipDataPush = True
+            break
+            
+    if not skipDataPush:
+        push_data(g_conn, folderpath='data')
+
+    # run_pageRank(g_conn)
+    g_conn.close()
     print("[+] Program finished.")
-    return 0;
+    return 0
+    
 
 if __name__ == "__main__":
     main();
