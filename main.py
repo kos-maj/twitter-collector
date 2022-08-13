@@ -11,66 +11,59 @@ TO DO: read multiple files/directories
 TO DO: Incorporate referenced tweets -- DONE
 '''
 
-# client = tweepy.Client(bearer_token=config.BEARER_TOKEN);
-transaction_commands = []
+class NeoConnection:
+    def __init__(self, uri, user, pwd):
+        self.uri = uri
+        self.user = user
+        self.pwd  = pwd
+        self.db_conn = None
+        self.transactions = []
 
-def exec_transactions(session):
-    # Connect to neo4j db and execute commands
-
-    # uri = "bolt://127.0.0.1:7687"
-    # db_conn = GraphDatabase.driver(uri, auth=("neo4j", "test"), encrypted=False)
-    # session = db_conn.session()
-    for i in transaction_commands:
-        session.run(i)
+        try:
+            self.db_conn = GraphDatabase.driver(uri, auth=(self.user, self.pwd), encrypted=False)
+            self.session = self.db_conn.session()
+        except Exception as err:
+            print(f"Failed to establish a connection: {err}")
     
-    # Clear commands
-    transaction_commands.clear()
+    def exec_transactions(self):
+        if(self.db_conn is None or self.session is None):
+            raise Exception("Connection not established... cannot execute transations!")
 
-def create_tweet_relation(user, tweet_id, relation):
-    username = str(user['username']).replace('"', '')
-    name     = str(user['name']).replace('"', '')
-    cmd_1    = f'''MERGE (:Follower{{\
-                    username: "{username}",\
-                    user_id: "{user['id']}",\
-                    name: "{name}"\
-                }})'''
-    cmd_2   = f'''MATCH (p:Follower{{username: "{username}"}}), (t:Tweet{{id: "{tweet_id}"}})\
-                CREATE (p)-[:{relation}]->(t)'''
-    cmd_3   = f'''MATCH (p:User{{username: "{username}"}}), (t:Tweet{{id: "{tweet_id}"}})\
-                CREATE (p)-[:{relation}]->(t)'''
+        for i in self.transactions:
+            try:
+                self.session.run(i)
+            except Exception as e:
+                print(f"Transaction failed to execute: {e}")
+        
+        # Clear transactions
+        self.transactions.clear()
     
-    transaction_commands.extend([cmd_1, cmd_2, cmd_3])
-
-def create_follows_relation(user, main_username):
-    username = str(user['username']).replace('"', '')
-    name     = str(user['name']).replace('"', '')
-    cmd_1    = f'''MERGE (:Follower{{\
-                    username: "{username}",\
-                    user_id: "{user['id']}",\
-                    name: "{name}"\
-                }})'''            
-    cmd_2   = f'''MATCH (p1:Follower{{username: "{username}"}}), (p2:User{{username: "{main_username}"}})\
-                CREATE (p1)-[:FOLLOWS]->(p2)'''
-    cmd_3   = f'''MATCH (p1:User{{username: "{username}"}}), (p2:User{{username: "{main_username}"}})\
-                CREATE (p1)-[:FOLLOWS]->(p2)'''
-
-    transaction_commands.extend([cmd_1, cmd_2, cmd_3])
-
-def format_json(path, newpath):
-    with open(path) as f:
-        data = json.load(f)
+    def add_transactions(self, trans):
+        if type(trans) is str:
+            self.transactions.append(trans)
+        elif type(trans) is list:
+            self.transactions.extend(trans)
+        else:
+            print(f"Error: transaction(s) must be string or list in order to be added.")
     
-    with open(newpath, 'w') as f:
-        json.dump(data, f, indent=2)
+    def close(self):
+        if self.session is not None:
+            self.session.close()
+        if self.db_conn is not None:
+            self.db_conn.close()
+        
 
-def extract_entities(tweet):
+# Global variable which will be instantiated to neo4j connection
+g_conn = None
+
+def extract_entities(conn: NeoConnection, tweet):
     if 'entities' in tweet:
         if 'mentions' in tweet['entities']:
             for user in tweet['entities']['mentions']:
                 uid = user['id']
 
                 # Add the following transaction to the queue
-                transaction_commands.append(
+                conn.add_transactions(
                     f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
                         MERGE (t:Tweet {{id: "{tweet['id']}"}}) \
                         MERGE (t)-[:MENTIONS]->(u)'''
@@ -80,16 +73,16 @@ def extract_entities(tweet):
             for annotation in tweet['entities']['annotations']:
                 
                 # Add the following transcations to the queue
-                transaction_commands.append(
+                conn.add_transactions(
                     f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
                         MERGE (t:Tweet {{id: "{tweet['id']}"}}) \
                         MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
                 )
 
-def extract_metrics(tweet):
+def extract_metrics(conn: NeoConnection, tweet):
     text = str(tweet['text']).replace('"', "'")
 
-    transaction_commands.append(
+    conn.add_transactions(
         f'''MERGE (t:Tweet{{\
                 created_at: "{tweet['created_at']}", \
                 author_id: "{tweet['author_id']}", \
@@ -103,12 +96,9 @@ def extract_metrics(tweet):
             MERGE (a)-[:AUTHORED]->(t)'''
     )
     
-
 def main():
 
-    uri = "bolt://127.0.0.1:7687"
-    db_conn = GraphDatabase.driver(uri, auth=("neo4j", "testing123"), encrypted=False)
-    session = db_conn.session()
+    g_conn = NeoConnection(uri = "bolt://127.0.0.1:7687", user = "neo4j", pwd = "testing123")
 
     # Change directory to folder containing afghan data
     cwd = os.getcwd()
@@ -134,7 +124,7 @@ def main():
                 location = tweet['author']['location'] if 'location' in tweet['author'] else 'N/A'
 
                 # Push tweet and author data
-                transaction_commands.append(
+                g_conn.add_transactions(
                     f'''MERGE (t:Tweet{{\
                             created_at: "{tweet['created_at']}", \
                             author_id: "{tweet['author_id']}", \
@@ -164,7 +154,7 @@ def main():
                             uid = user['id']
             
                             # Add the following transaction to the queue
-                            transaction_commands.append(
+                            g_conn.add_transactions(
                                 f'''MERGE (u:User {{username: "{user['username']}", id: "{uid}"}}) \
                                     MERGE (t:Tweet {{id: "{tid}"}}) \
                                     MERGE (t)-[:MENTIONS]->(u)'''
@@ -173,8 +163,7 @@ def main():
                     if 'annotations' in tweet['entities']:
                         for annotation in tweet['entities']['annotations']:
                             
-                            # Add the following transcations to the queue
-                            transaction_commands.append(
+                            g_conn.add_transactions(
                                 f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
                                     MERGE (t:Tweet {{id: "{tid}"}}) \
                                     MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
@@ -184,9 +173,9 @@ def main():
                 if 'referenced_tweets' in tweet:
                     for ref_tweet in tweet['referenced_tweets']:
                         if 'text' in ref_tweet:
-                            extract_metrics(ref_tweet)
-                            extract_entities(ref_tweet)
-                            transaction_commands.append(
+                            extract_metrics(g_conn, ref_tweet)
+                            extract_entities(g_conn, ref_tweet)
+                            g_conn.add_transactions(
                                 f'''MATCH (original:Tweet {{id: "{tid}"}}), (new:Tweet {{id: "{ref_tweet['id']}"}})\
                                     MERGE (original)-[:{ref_tweet['type']}]->(new)''' 
                             )
@@ -194,69 +183,12 @@ def main():
                 # Execute transactions in neo4j every 80 iterations
                 count += 1;
                 if count % 80 == 0:
-                    exec_transactions(session)
+                    g_conn.exec_transactions()
                     count = 0
-        
+
+    g_conn.close() 
     print("[+] Program finished.")
     return 0;
-
-'''
-    base_usernames = ['BarlieFt', 'seobigwin', 'TenchiNFT']
-    for username in base_usernames:
-        user      = client.get_user(
-                        username=username, 
-                        user_fields=['created_at', 'description', 'location', 'protected', 'public_metrics']
-                    )
-        
-        if user.data is None:
-            continue;
-
-        ### Import data into Neo4j
-        transaction_commands.append(
-            # id, name, username, follower count, location, protected
-            f''CREATE (:User{{\
-                username: "{username}",\
-                user_id: "{user.data['id']}",\
-                name: "{user.data['name']}",\
-                follower_count: "{user.data['public_metrics']['followers_count']}",\
-                following_count: "{user.data['public_metrics']['following_count']}",\
-                tweet_count: "{user.data['public_metrics']['tweet_count']}",\
-                protected: "{user.data['protected']}",\
-                created_on: "{str(user.data['created_at'])[0:10]}"\
-                }})''
-        )
-
-        # Import followers
-        followers = client.get_users_followers(id=user.data['id'])
-        for follower in followers.data:
-            create_follows_relation(follower, username)
-    
-        # Import recent tweets (if existent)
-        recent_tweets = client.search_recent_tweets(query=f'from:{username}')
-
-        if recent_tweets.data:
-            for tweet in recent_tweets.data:
-                # Add tweet and authored by relation in neo4j
-                tweet_id = tweet['id']
-                text     = str(tweet['text']).replace('"', "'")
-                transaction_commands.append(
-                    f''MERGE (u:User{{username: "{username}"}})\
-                      MERGE (t:Tweet{{id: "{tweet_id}", text: "{text}"}})\
-                      CREATE (u)-[:AUTHORED]->(t)''
-                ) 
-
-                # Add likes/retweets into neo4j 
-                likes    = client.get_liking_users(id=tweet['id'])
-                retweets = client.get_retweeters(id=tweet['id'])
-                if likes.data: 
-                    for tmp_user in likes.data:
-                        create_tweet_relation(tmp_user, tweet_id, 'LIKED')
-                if retweets.data:
-                    for tmp_user in retweets.data:
-                        create_tweet_relation(tmp_user, tweet_id, 'RETWEETED')
-
-        exec_transactions(session)
-'''
 
 if __name__ == "__main__":
     main();
