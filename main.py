@@ -26,7 +26,27 @@ class NeoConnection:
         except Exception as err:
             print(f"Failed to establish a connection: {err}")
     
+    def exec_query(self, query, getResult):
+        # Error handling
+        if(self.db_conn is None or self.session is None):
+            raise Exception("Connection not established... cannot execute transations!")
+
+        if getResult:
+            response = None
+            try:
+                response = list(self.session.run(query))
+            except Exception as e:
+                print(f"Query failed: {e}")
+        
+            return response
+        else:
+            try:
+                self.session.run(query)
+            except Exception as e:
+                print(f"Query failed: {e}")
+
     def exec_transactions(self):
+        # Error handling
         if(self.db_conn is None or self.session is None):
             raise Exception("Connection not established... cannot execute transations!")
 
@@ -38,7 +58,38 @@ class NeoConnection:
         
         # Clear transactions
         self.transactions.clear()
+
+    def run_pageRank(self, name, entities, rel, attribute):
+
+        from pandas import DataFrame
     
+        limit = 10
+        # Create projection of data to run algorithms on
+        query = f'''CALL gds.graph.project(
+                    '{name}',
+                    {entities},
+                    '{rel}')'''
+        self.exec_query(query, getResult = False)
+    
+        # Run pageRank algorithm
+        query = f'''CALL gds.pageRank.stream('{name}')
+                YIELD nodeId, score
+                RETURN gds.util.asNode(nodeId).{attribute} as {attribute}, score
+                ORDER BY score DESC
+                LIMIT {limit}'''    
+    
+        data = DataFrame([dict(_) for _ in self.exec_query(query, getResult=True)])
+
+        # Display results
+        length = 25
+        print('-'*length, name, '-'*length, sep='')
+        print(data.head(limit))
+        print('='*(2*length+(len(name))))
+        
+        # Clean up
+        query = f'''CALL gds.graph.drop('{name}')'''
+        self.exec_query(query, getResult = False)
+
     def add_transactions(self, trans):
         if type(trans) is str:
             self.transactions.append(trans)
@@ -185,9 +236,6 @@ def push_data(conn:NeoConnection, folderpath):
                     conn.exec_transactions()
                     count = 0
 
-def run_pageRank(conn: NeoConnection):
-    pass
-
 def main():
 
     skipDataPush = False
@@ -201,9 +249,9 @@ def main():
     if not skipDataPush:
         push_data(g_conn, folderpath='data')
 
-    # run_pageRank(g_conn)
+    g_conn.run_pageRank(name='annotatedOrganizations', entities=['Organization','Tweet'], rel='ANNOTATES', attribute='description')
+    g_conn.run_pageRank(name='mentionedUsers', entities=['User','Tweet'], rel='MENTIONS', attribute='username')
     g_conn.close()
-    print("[+] Program finished.")
     return 0
     
 
