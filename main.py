@@ -2,9 +2,9 @@ import cmd
 import tweepy
 import config
 import sys
+
 from neo4j import GraphDatabase
 from neomethods import *
-
 from neoconnection import NeoConnection
 
 '''
@@ -15,8 +15,6 @@ to those who have been approved for the Academic Research product track.
 '''
 
 def main():
-
-    # TODO: look into USER replies to TWEET relationship
 
     g_conn = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
     client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
