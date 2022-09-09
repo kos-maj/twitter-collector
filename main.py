@@ -24,7 +24,7 @@ def main():
     # if(extract_users(base_usernames)):
         # return -1
 
-    base_usernames = ['BarlieFt', 'seobigwin', 'TenchiNFT']
+    base_usernames = ['BarlieFt', 'seobigwin', 'TenchiNFT', 'BillClinton']
     for username in base_usernames:
         user      = client.get_user(
                         username=username, 
