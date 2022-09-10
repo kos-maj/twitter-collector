@@ -3,7 +3,6 @@ import tweepy
 import config
 import sys
 
-from neo4j import GraphDatabase
 from neomethods import *
 from neoconnection import NeoConnection
 
@@ -14,18 +13,16 @@ TO DO: Add functionality for use case 2 (get tweets from users within a set time
 to those who have been approved for the Academic Research product track.
 '''
 
-def main():
+def buildTweetNetwork(client, tweet_ids, connection: NeoConnection):
+    usernames = []
+    for tweet_id in tweet_ids:
+        tweet = client.get_tweet(id = tweet_id, tweet_fields=['author_id'])
+        usernames.append(client.get_user(id=tweet.data['author_id']).data['username'])
 
-    g_conn = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
-    client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
+    buildUsernameNetwork(client, usernames, connection)
 
-    ### Extract usernames from file provided
-    # base_usernames = []
-    # if(extract_users(base_usernames)):
-        # return -1
-
-    base_usernames = ['BarlieFt', 'seobigwin', 'TenchiNFT', 'BillClinton']
-    for username in base_usernames:
+def buildUsernameNetwork(client, usernames, connection: NeoConnection):
+    for username in usernames:
         user      = client.get_user(
                         username=username, 
                         user_fields=['created_at', 'description', 'location', 'protected', 'public_metrics']
@@ -35,7 +32,7 @@ def main():
             continue;
 
         # Import user into Neo4j
-        g_conn.add_transactions(
+        connection.add_transactions(
             f'''CREATE (:User{{\
                     username: "{username}",\
                     user_id: "{user.data['id']}",\
@@ -50,7 +47,7 @@ def main():
         # Import followers
         followers = client.get_users_followers(id=user.data['id'])
         for follower in followers.data:
-            create_follows_relation(follower, username, g_conn)
+            create_follows_relation(follower, username, connection)
     
         # Import recent tweets (if existent)
         recent_tweets = client.search_recent_tweets(query=f'from:{username}')
@@ -60,7 +57,7 @@ def main():
                 # Add tweet and authored by relation in neo4j
                 tweet_id = tweet['id']
                 text     = str(tweet['text']).replace('"', "'")
-                g_conn.add_transactions(
+                connection.add_transactions(
                     f'''MERGE (u:User{{username: "{username}"}})\
                         MERGE (t:Tweet{{id: "{tweet_id}", text: "{text}"}})\
                         CREATE (u)-[:AUTHORED]->(t)'''
@@ -71,13 +68,32 @@ def main():
                 retweets = client.get_retweeters(id=tweet['id'])
                 if likes.data: 
                     for tmp_user in likes.data:
-                        create_tweet_relation(tmp_user, tweet_id, 'LIKED', g_conn)
+                        create_tweet_relation(tmp_user, tweet_id, 'LIKED', connection)
                 if retweets.data:
                     for tmp_user in retweets.data:
-                        create_tweet_relation(tmp_user, tweet_id, 'RETWEETED', g_conn)
+                        create_tweet_relation(tmp_user, tweet_id, 'RETWEETED', connection)
 
-        g_conn.exec_transactions()
-             
+        connection.exec_transactions()
+
+def main():
+
+    g_conn = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
+    client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
+
+    # If usernames are provided -----
+
+    ### Extract usernames from file provided
+    # base_usernames = []
+    # if(extract_users(base_usernames)):
+        # return -1
+
+    # base_usernames  = ['TenchiNFT', 'BillClinton']
+    # buildUsernameNetwork(client, base_usernames, g_conn)
+
+    # If tweet ids are provided -----
+    base_tweets     = ['1567933780635144194', '1568630126752964608'] 
+    buildTweetNetwork(client, base_tweets, g_conn);
+
     print("[+] Program finished.")
     return 0;
 
