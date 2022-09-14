@@ -16,7 +16,7 @@ If you wish to have persistent storage (for container data and logs), then creat
 where the name for the first container can be 'neo-data' and the second 'neo-logs', for neo4j data and logs, respectively.   
   
 Once the volumes are created, simply run the neo4j image but assure to mount the volumes to the image:  
-`docker run -p7474:7474 -p7687:7687 -d --name <container_name> -v data:/neo-data logs:/neo-logs --env NEO4J_AUTH=neo4j/testing123 neo4j:latest`
+`docker run -p7474:7474 -p7687:7687 -d --name <container_name> -v neo-data:/data neo-logs:/logs --env NEO4J_AUTH=neo4j/testing123 neo4j:latest`
 
 ## Addition information
 - All data which is pulled and used to create the networks will be stored in both neo4j and elasticsearch.
