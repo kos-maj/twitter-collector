@@ -1,6 +1,4 @@
-import sys
-
-from neoconnection import NeoConnection
+from .neoconnection import NeoConnection
 
 def create_tweet_relation(user, tweet_id, relation, connection: NeoConnection):
     username = str(user['username']).replace('"', '')
@@ -32,29 +30,28 @@ def create_follows_relation(user, main_username, connection: NeoConnection):
 
     connection.add_transactions([cmd_1, cmd_2, cmd_3])
 
-def extract_users(users: list):
-    # Extracts the usernames provided at the given path. Assumes each username is seperated by a newline character.
+def extract_identifiers(*, data: list):
+    # Extracts the id's provided at the given path. Assumes each id is seperated by a newline character.
     # 
     # Args:     path - path to file containing user(s)
     #           users - list in which to store the extracted user(s)
-   
-    #           exits() application if unsuccessful
+    #
+    # Returns:  -1 if error occurs (i.e. path does not exist)
+    #            0 if successful
+
     from os.path import exists
 
-    if(len(sys.argv) != 2):
-        print('Error: must provide a file of base username network as input.')
-        exit()
-
-    path = str(sys.argv[1])
-    if(exists(path)):
-        # Read all usernames from file
-        with open(path) as fin:
-            while(1):
-                line = fin.readline()
-                if not line:
-                    break
-                else:
-                    users.append(line.rstrip())
-    else:
-        print('Error: input file does not exist.');
-        exit();
+    while True:
+        path = input("Please enter the path of the input file: ")
+        if(exists(path)):
+            # Read all id's from file
+            with open(path) as fin:
+                while(1):
+                    line = fin.readline()
+                    if not line:
+                        break
+                    else:
+                        data.append(line.rstrip())
+            break
+        else:
+            print('[-] Error: input file does not exist.')
