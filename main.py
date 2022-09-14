@@ -19,7 +19,7 @@ def main():
     client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
 
     options = ["Usernames", "Tweet IDs"]
-    option, index = pick(options , "Please select the data which will serve as input for the network constructor: ")
+    option, index = pick(options , "Please select the data which will serve as input for the network constructor: ", indicator=">")
     identifiers = []
     extract_identifiers(data=identifiers)
 
