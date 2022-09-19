@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  neo4j:
+    build: ./docker
+    volumes:
+      - type: bind
+        source: ./docker/data
+        target: /data
+    ports:
+      - 7474:7474
+      - 7687:7687
+    stop_grace_period: 1m 
