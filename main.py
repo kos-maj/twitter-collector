@@ -21,16 +21,19 @@ def main():
     options = ["Usernames", "Tweet IDs"]
     option, index = pick(options , "Please select the data which will serve as input for the network constructor: ", indicator=">")
     identifiers = []
-    extract_identifiers(data=identifiers)
 
     # Debugging
     # base_usernames  = ['TenchiNFT', 'BillClinton']
     # base_tweets     = ['1567933780635144194', '1568630126752964608'] 
     # Debugging 
+    
+    print("[+] Extracting data and building network. This may take some time...")
 
     if(option == options[0]):           # Build network from usernames
+        extract_identifiers(path='./data/usernames.txt', data=identifiers)
         buildUsernameNetwork(client, identifiers, g_conn)
     else:                               # Build network from tweet id's
+        extract_identifiers(path='./data/tweets.txt', data=identifiers)
         buildTweetNetwork(client, identifiers, g_conn)
         # return -1
 

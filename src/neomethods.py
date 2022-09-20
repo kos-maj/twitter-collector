@@ -30,19 +30,14 @@ def create_follows_relation(user, main_username, connection: NeoConnection):
 
     connection.add_transactions([cmd_1, cmd_2, cmd_3])
 
-def extract_identifiers(*, data: list):
+def extract_identifiers(*, path: str, data: list):
     # Extracts the id's provided at the given path. Assumes each id is seperated by a newline character.
     # 
     # Args:     path - path to file containing user(s)
-    #           users - list in which to store the extracted user(s)
-    #
-    # Returns:  -1 if error occurs (i.e. path does not exist)
-    #            0 if successful
-
+    #           data - list to which extracted users/ids will be pushed to
     from os.path import exists
 
     while True:
-        path = input("Please enter the path of the input file: ")
         if(exists(path)):
             # Read all id's from file
             with open(path) as fin:
