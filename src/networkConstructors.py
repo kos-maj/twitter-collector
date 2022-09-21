@@ -42,7 +42,7 @@ def buildUsernameNetwork(client, usernames, connection: NeoConnection):
         # Import recent tweets (if existent)
         recent_tweets = client.get_users_tweets(
             id=user.data['id'],
-            tweet_fields=['author_id', 'created_at','public_metrics']
+            tweet_fields=['author_id', 'created_at','public_metrics', 'entities']
         )
 
         if recent_tweets.data:
