@@ -1,3 +1,4 @@
+from re import U
 from .neoconnection import NeoConnection
 from .neomethods import create_follows_relation, create_tweet_relation
 
@@ -23,10 +24,11 @@ def buildUsernameNetwork(client, usernames, connection: NeoConnection):
         connection.add_transactions(
             f'''CREATE (:User{{\
                     username: "{username}",\
-                    user_id: "{user.data['id']}",\
+                    id: "{user.data['id']}",\
+                    description: "${user.data['description']}",\
                     name: "{user.data['name']}",\
-                    follower_count: "{user.data['public_metrics']['followers_count']}",\
-                    following_count: "{user.data['public_metrics']['following_count']}",\
+                    followers: "{user.data['public_metrics']['followers_count']}",\
+                    following: "{user.data['public_metrics']['following_count']}",\
                     tweet_count: "{user.data['public_metrics']['tweet_count']}",\
                     protected: "{user.data['protected']}",\
                     created_on: "{str(user.data['created_at'])[0:10]}"}})'''
@@ -38,7 +40,10 @@ def buildUsernameNetwork(client, usernames, connection: NeoConnection):
             create_follows_relation(follower, username, connection)
     
         # Import recent tweets (if existent)
-        recent_tweets = client.search_recent_tweets(query=f'from:{username}')
+        recent_tweets = client.get_users_tweets(
+            id=user.data['id'],
+            tweet_fields=['author_id', 'created_at','public_metrics']
+        )
 
         if recent_tweets.data:
             for tweet in recent_tweets.data:
@@ -47,18 +52,25 @@ def buildUsernameNetwork(client, usernames, connection: NeoConnection):
                 text     = str(tweet['text']).replace('"', "'")
                 connection.add_transactions(
                     f'''MERGE (u:User{{username: "{username}"}})\
-                        MERGE (t:Tweet{{id: "{tweet_id}", text: "{text}"}})\
+                        MERGE (t:Tweet{{
+                            id: "{tweet_id}",\
+                            author_id: "{tweet['author_id']}",\
+                            created_at: "{tweet['created_at']}",\
+                            likes: "{tweet['public_metrics']['like_count']}",\
+                            retweets: "{tweet['public_metrics']['retweet_count']}",\
+                            replies: "{tweet['public_metrics']['reply_count']}",\
+                            text: "{text}"}})\
                         CREATE (u)-[:AUTHORED]->(t)'''
                 )
-
+    
                 # Add likes/retweets in neo4j 
-                likes    = client.get_liking_users(id=tweet['id'])
-                retweets = client.get_retweeters(id=tweet['id'])
-                if likes.data: 
-                    for tmp_user in likes.data:
-                        create_tweet_relation(tmp_user, tweet_id, 'LIKED', connection)
-                if retweets.data:
-                    for tmp_user in retweets.data:
-                        create_tweet_relation(tmp_user, tweet_id, 'RETWEETED', connection)
+                # likes    = client.get_liking_users(id=tweet['id'])
+                # retweets = client.get_retweeters(id=tweet['id'])
+                # if likes.data: 
+                    # for tmp_user in likes.data:
+                        # create_tweet_relation(tmp_user, tweet_id, 'LIKED', connection)
+                # if retweets.data:
+                    # for tmp_user in retweets.data:
+                        # create_tweet_relation(tmp_user, tweet_id, 'RETWEETED', connection)
 
         connection.exec_transactions()

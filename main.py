@@ -7,10 +7,8 @@ from src.neomethods import extract_identifiers
 from src.networkConstructors import buildTweetNetwork, buildUsernameNetwork
 
 '''
-TO DO: Add functionality for use case 2 (get tweets from users within a set time range)
-
--> tweepy client 'search_all_tweets(query, end_time, start_time, ...)' endpoint is only available
-to those who have been approved for the Academic Research product track.
+TO DO: tweepy client 'search_all_tweets(query, end_time, start_time, ...)' endpoint is only available
+to those who have been approved for the Academic Research product track. Need bearer token for academic account.
 '''
 
 def main():

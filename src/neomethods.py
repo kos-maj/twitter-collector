@@ -20,7 +20,7 @@ def create_follows_relation(user, main_username, connection: NeoConnection):
     name     = str(user['name']).replace('"', '')
     cmd_1    = f'''MERGE (:Follower{{\
                     username: "{username}",\
-                    user_id: "{user['id']}",\
+                    id: "{user['id']}",\
                     name: "{name}"\
                 }})'''            
     cmd_2   = f'''MATCH (p1:Follower{{username: "{username}"}}), (p2:User{{username: "{main_username}"}})\
