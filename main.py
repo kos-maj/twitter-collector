@@ -5,6 +5,7 @@ from pick import pick
 from src.neoconnection import NeoConnection
 from src.neomethods import extract_identifiers
 from src.networkConstructors import buildTweetNetwork, buildUsernameNetwork
+from os import system
 
 '''
 TO DO: tweepy client 'search_all_tweets(query, end_time, start_time, ...)' endpoint is only available
@@ -12,6 +13,7 @@ to those who have been approved for the Academic Research product track. Need be
 '''
 
 def main():
+    system('clear')
 
     g_conn = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
     client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
@@ -33,9 +35,16 @@ def main():
     else:                               # Build network from tweet id's
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
         buildTweetNetwork(client, identifiers, g_conn)
-        # return -1
 
-    print("[+] Program finished.")
+    options = ["Yes", "No"]
+    option, index = pick(options, "Network successfully created.\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
+    
+    if(option == options[0]):
+        g_conn.run_pageRank(name='annotatedOrganizations', entities=['Organization','Tweet'], rel='ANNOTATES', attribute='description')
+        g_conn.run_pageRank(name='mentionedUsers', entities=['User','Tweet'], rel='MENTIONS', attribute='username')
+
+    g_conn.close()
+    print("\n[+] Program finished.")
     return 0
 
 if __name__ == "__main__":

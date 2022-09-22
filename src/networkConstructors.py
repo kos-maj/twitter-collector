@@ -80,6 +80,7 @@ def buildUsernameNetwork(client, usernames, connection: NeoConnection):
                                     MERGE (t:Tweet {{id: "{tweet_id}"}}) \
                                     MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
                             )  
+
                 # Add likes/retweets in neo4j 
                 # likes    = client.get_liking_users(id=tweet['id'])
                 # retweets = client.get_retweeters(id=tweet['id'])
