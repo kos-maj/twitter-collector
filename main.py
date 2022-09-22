@@ -18,7 +18,7 @@ def main():
     g_conn = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
     client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
 
-    options = ["Usernames", "Tweet IDs"]
+    options = ["Usernames", "Tweet IDs", "Skip data extraction"]
     option, index = pick(options , "Please select the data which will serve as input for the network constructor: ", indicator=">")
     identifiers = []
 
@@ -29,19 +29,20 @@ def main():
     
     print("[+] Extracting data and building network. This may take some time...")
 
-    if(option == options[0]):           # Build network from usernames
+    if(option == options[0]):                                   # Build network from usernames
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
         buildUsernameNetwork(client, identifiers, g_conn)
-    else:                               # Build network from tweet id's
+    elif(option == options[1]):                                 # Build network from tweet id's
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
         buildTweetNetwork(client, identifiers, g_conn)
 
     options = ["Yes", "No"]
-    option, index = pick(options, "Network successfully created.\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
+    option, index = pick(options, "\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
     
     if(option == options[0]):
         g_conn.run_pageRank(name='annotatedOrganizations', entities=['Organization','Tweet'], rel='ANNOTATES', attribute='description')
         g_conn.run_pageRank(name='mentionedUsers', entities=['User','Tweet'], rel='MENTIONS', attribute='username')
+        g_conn.run_pageRank(name='annotatedPlaces', entities=['Place','Tweet'], rel='ANNOTATES', attribute='description')
 
     g_conn.close()
     print("\n[+] Program finished.")
