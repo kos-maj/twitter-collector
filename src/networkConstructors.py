@@ -62,7 +62,24 @@ def buildUsernameNetwork(client, usernames, connection: NeoConnection):
                             text: "{text}"}})\
                         CREATE (u)-[:AUTHORED]->(t)'''
                 )
-    
+
+                # Push data regarding mentioned users/people/places
+                if 'entities' in tweet: 
+                    if 'mentions' in tweet['entities']:
+                        for user in tweet['entities']['mentions']:
+                            connection.add_transactions(
+                                f'''MERGE (u:User {{username: "{user['username']}", id: "{user['id']}"}}) \
+                                    MERGE (t:Tweet {{id: "{tweet_id}"}}) \
+                                    MERGE (t)-[:MENTIONS]->(u)'''
+                            )
+                    
+                    if 'annotations' in tweet['entities']:
+                        for annotation in tweet['entities']['annotations']:
+                            connection.add_transactions(
+                                f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
+                                    MERGE (t:Tweet {{id: "{tweet_id}"}}) \
+                                    MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
+                            )  
                 # Add likes/retweets in neo4j 
                 # likes    = client.get_liking_users(id=tweet['id'])
                 # retweets = client.get_retweeters(id=tweet['id'])
