@@ -36,8 +36,15 @@ def main():
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
         buildTweetNetwork(client, identifiers, g_conn)
 
+    options = ["Yes", "No"]
+    option, index = pick(options, "Network successfully created.\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
+    
+    if(option == options[0]):
+        g_conn.run_pageRank(name='annotatedOrganizations', entities=['Organization','Tweet'], rel='ANNOTATES', attribute='description')
+        g_conn.run_pageRank(name='mentionedUsers', entities=['User','Tweet'], rel='MENTIONS', attribute='username')
+
     g_conn.close()
-    print("[+] Program finished.")
+    print("\n[+] Program finished.")
     return 0
 
 if __name__ == "__main__":
