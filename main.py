@@ -36,6 +36,7 @@ def main():
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
         buildTweetNetwork(client, identifiers, g_conn)
 
+    system('clear')
     options = ["Yes", "No"]
     option, index = pick(options, "\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
     
@@ -43,7 +44,29 @@ def main():
         g_conn.run_pageRank(name='annotatedOrganizations', entities=['Organization','Tweet'], rel='ANNOTATES', attribute='description')
         g_conn.run_pageRank(name='mentionedUsers', entities=['User','Tweet'], rel='MENTIONS', attribute='username')
         g_conn.run_pageRank(name='annotatedPlaces', entities=['Place','Tweet'], rel='ANNOTATES', attribute='description')
+        input("\nPress enter to continue...")
 
+    options = ["User", "Tweet", "No"]
+    usernames = [record['username'] for record in g_conn.get_users()]
+    while True:
+        system('clear')
+        option, index = pick(options, "\nDo you wish to build a subgraph on one of the given entities: ", indicator=">")
+
+        if(option == options[2]): 
+            break   
+        elif(option == options[0]):                 # User subgraph
+            username = input("Enter the username of an entity in the graph: ")
+            if username not in usernames:
+                input("[-] Error: there is no existing user with the username '{}'. Press enter to continue...".format(username))
+            else:
+                print("Paste the following code in the neo4j browser to obtain the desired subgraph: ")
+                input(f'''
+                MATCH (n:User{{username:"{username}"}})
+                CALL apoc.path.subgraphNodes(n, {{labelFilter:'-User'}}) YIELD node
+                RETURN node\n\nPress enter to continue...''')
+        elif(option == options[1]):                 # Tweet subgraph
+            input("not implemented yet...\n\nPress enter to continue...") 
+            
     g_conn.close()
     print("\n[+] Program finished.")
     return 0
