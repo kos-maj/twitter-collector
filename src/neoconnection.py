@@ -46,12 +46,17 @@ class NeoConnection:
         
         # Clear transactions
         self.transactions.clear()
+    
+    def get_users(self):
+        return self.exec_query("MATCH (n:User) RETURN (n.username) AS username", getResult=True)
+    
+    def get_tweets(self):
+        return self.exec_query("MATCH (n:Tweet RETURN (n.id) AS tweetId", getResult=True)
 
     def run_pageRank(self, name, entities, rel, attribute):
-
         from pandas import DataFrame
-    
         limit = 10
+
         # Create projection of data to run algorithms on
         query = f'''CALL gds.graph.project(
                     '{name}',
@@ -67,7 +72,6 @@ class NeoConnection:
                 LIMIT {limit}'''    
     
         data = DataFrame([dict(_) for _ in self.exec_query(query, getResult=True)])
-
         # Display results
         length = 25
         print('-'*length, name, '-'*length, sep='')
