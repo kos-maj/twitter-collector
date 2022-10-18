@@ -26,7 +26,7 @@ Note: this repository's dependencies were created with conda in mind.
 4. Run the application by executing `python3 main.py` in the command prompt
   
 ## Addition information
-- All data which is pulled and used to create the networks will be stored in both neo4j and elasticsearch (former not yet implemented).
+- All data which is pulled and used to create the networks will be stored in both neo4j and elasticsearch (latter not yet implemented).
 - Come up with 2 plans
   1. Build the network from scratch (i.e. deleting entire network and rebuilding it)
   2. Updating rather than deleting and constructing from nothing
