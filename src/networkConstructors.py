@@ -4,11 +4,52 @@ from .neomethods import create_follows_relation, create_tweet_relation
 
 def buildTweetNetwork(client, tweet_ids, connection: NeoConnection):
     usernames = []
+    
     for tweet_id in tweet_ids:
-        tweet = client.get_tweet(id = tweet_id, tweet_fields=['author_id'])
-        usernames.append(client.get_user(id=tweet.data['author_id']).data['username'])
+        tweet = client.get_tweet(
+            id = tweet_id, 
+            tweet_fields=['author_id', 'created_at','public_metrics', 'entities']
+        )
+        username = client.get_user(id=tweet.data['author_id']).data['username']
+        usernames.append(username)
 
-    buildUsernameNetwork(client, usernames, connection)
+        buildUsernameNetwork(client, usernames, connection)
+
+        if tweet.data:
+            tweet_id = tweet.data['id']
+            text     = str(tweet.data['text']).replace('"', "'")
+            connection.add_transactions(
+                f'''MERGE (u:User{{username: "{username}"}})\
+                    MERGE (t:Tweet{{
+                        id: "{tweet_id}",\
+                        author_id: "{tweet.data['author_id']}",\
+                        created_at: "{tweet.data['created_at']}",\
+                        likes: "{tweet.data['public_metrics']['like_count']}",\
+                        retweets: "{tweet.data['public_metrics']['retweet_count']}",\
+                        replies: "{tweet.data['public_metrics']['reply_count']}",\
+                        text: "{text}"}})\
+                    CREATE (u)-[:AUTHORED]->(t)'''
+            )
+                # Push data regarding mentioned users/people/places
+            if 'entities' in tweet.data: 
+                if 'mentions' in tweet.data['entities']:
+                    for user in tweet.data['entities']['mentions']:
+                        connection.add_transactions(
+                            f'''MERGE (u:User {{username: "{user['username']}", id: "{user['id']}"}}) \
+                                MERGE (t:Tweet {{id: "{tweet_id}"}}) \
+                                MERGE (t)-[:MENTIONS]->(u)'''
+                        )
+                
+                if 'annotations' in tweet.data['entities']:
+                    for annotation in tweet.data['entities']['annotations']:
+                        connection.add_transactions(
+                            f'''MERGE (a:{annotation['type']} {{description: "{annotation['normalized_text']}"}}) \
+                                MERGE (t:Tweet {{id: "{tweet_id}"}}) \
+                                MERGE (t)-[:ANNOTATES {{probability: "{annotation['probability']}"}}]->(a)'''
+                        )  
+        
+        connection.exec_transactions()
+            
 
 def buildUsernameNetwork(client, usernames, connection: NeoConnection):
     for username in usernames:
