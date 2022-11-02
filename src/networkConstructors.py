@@ -51,7 +51,7 @@ def buildTweetNetwork(client, tweet_ids, connection: NeoConnection):
         connection.exec_transactions()
             
 
-def buildUsernameNetwork(client, usernames, end_date, connection: NeoConnection):
+def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnection):
     for username in usernames:
         user      = client.get_user(
                         username=username, 
@@ -84,8 +84,8 @@ def buildUsernameNetwork(client, usernames, end_date, connection: NeoConnection)
         # Import recent tweets (if existent)
         for recent_tweets in Paginator(client.get_users_tweets, 
                                         id=user.data['id'],
-                                        end_time=end_date,
-                                        max_results=90,
+                                        start_time=start_date,
+                                        max_results=100,
                                         tweet_fields=['author_id', 'created_at','public_metrics', 'entities']):
 
             if recent_tweets.data:

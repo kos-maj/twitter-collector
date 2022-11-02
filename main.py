@@ -26,15 +26,14 @@ def main():
 
     time_options = ["Week", "Month", "3 Months"]
     time_frame, index = pick(time_options , "Please select the desired time frame: ", indicator=">")
-    end_date = None
+    start_date = None
 
     if(time_frame == time_options[0]):      # week
-        end_date = datetime.today() - relativedelta(weeks=1)
-        end_date = datetime.today() - relativedelta(days=1)
+        start_date = datetime.today() - relativedelta(weeks=1)
     elif(time_frame == time_options[1]):    # month
-        end_date = datetime.today() - relativedelta(months=1)
+        start_date = datetime.today() - relativedelta(months=1)
     elif(time_frame == time_options[2]):    # 3 months
-        end_date = datetime.today() - relativedelta(months=3)
+        start_date = datetime.today() - relativedelta(months=3)
     else:                                   # other
         input('not implemeneted...')
         exit(0)
@@ -48,7 +47,7 @@ def main():
 
     if(data_type == data_options[0]):                                   # Build network from usernames
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
-        buildUsernameNetwork(client, identifiers, end_date, g_conn)
+        buildUsernameNetwork(client, identifiers, start_date, g_conn)
     elif(data_type == data_options[1]):                                 # Build network from tweet id's
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
         buildTweetNetwork(client, identifiers, g_conn)
