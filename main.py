@@ -38,13 +38,7 @@ def main():
         input('not implemeneted...')
         exit(0)
 
-    # Debugging
-    # base_usernames  = ['TenchiNFT', 'BillClinton']
-    # base_tweets     = ['1567933780635144194', '1568630126752964608'] 
-    # Debugging 
-    
     print("[+] Extracting data and building network. This may take some time...")
-
     if(data_type == data_options[0]):                                   # Build network from usernames
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
         buildUsernameNetwork(client, identifiers, start_date, g_conn)
@@ -52,9 +46,9 @@ def main():
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
         buildTweetNetwork(client, identifiers, start_date, g_conn)
     system('clear')
+
     options = ["Yes", "No"]
     option, index = pick(options, "\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
-    
     if(option == options[0]):
         g_conn.run_pageRank(name='annotatedOrganizations', entities=['Organization','Tweet'], rel='ANNOTATES', attribute='description')
         g_conn.run_pageRank(name='mentionedUsers', entities=['User','Tweet'], rel='MENTIONS', attribute='username')
