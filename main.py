@@ -50,8 +50,7 @@ def main():
         buildUsernameNetwork(client, identifiers, start_date, g_conn)
     elif(data_type == data_options[1]):                                 # Build network from tweet id's
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
-        buildTweetNetwork(client, identifiers, g_conn)
-
+        buildTweetNetwork(client, identifiers, start_date, g_conn)
     system('clear')
     options = ["Yes", "No"]
     option, index = pick(options, "\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
