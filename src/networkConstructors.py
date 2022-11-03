@@ -10,12 +10,28 @@ def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
             id = tweet_id, 
             tweet_fields=['author_id', 'created_at','public_metrics', 'entities']
         )
+        if tweet.data is None:
+            continue
+
         username = client.get_user(id=tweet.data['author_id']).data['username']
         usernames.append(username)
-
         buildUsernameNetwork(client, usernames, start_date, connection)
 
-        if tweet.data:
+        tweet_query =  connection.exec_query(
+                        f'''MATCH (n:Tweet{{id: "{tweet_id}"}}) RETURN (n)''', 
+                        getResult=True
+                    )
+        if len(tweet_query):        # Tweet already exists within neo4j
+            # Update volatile data
+            connection.add_transactions(
+                f'''MATCH (t:Tweet{{id: "{tweet_id}"}})
+                    SET t.likes = "{tweet.data['public_metrics']['like_count']}",\
+                        t.retweets: "{tweet.data['public_metrics']['retweet_count']}",\
+                        t.replies: "{tweet.data['public_metrics']['reply_count']}"
+                '''
+            )
+        else:   
+            # Import tweet into neo4j
             tweet_id = tweet.data['id']
             text     = str(tweet.data['text']).replace('"', "'")
             connection.add_transactions(
@@ -57,7 +73,6 @@ def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnectio
                         username=username, 
                         user_fields=['created_at', 'description', 'location', 'protected', 'public_metrics']
                     )
-        
         if user.data is None:
             continue;
 
@@ -66,7 +81,7 @@ def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnectio
                     getResult=True
                 )
         if len(user_query):         # User already exists in neo4j
-            # Update user data 
+            # Update volatile data 
             connection.add_transactions(
                 f'''MATCH (n:User{{id: "{user.data['id']}"}})
                     SET n.followers = "{user.data['public_metrics']['followers_count']}",\
