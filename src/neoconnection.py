@@ -15,6 +15,8 @@ class NeoConnection:
             print(f"Failed to establish a connection: {err}")
 
     def get_session(self):
+        if self.session is None:
+            raise Exception("Session not initialized.")
         return self.session
 
     def exec_query(self, query, getResult):
