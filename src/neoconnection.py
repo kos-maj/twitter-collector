@@ -36,20 +36,6 @@ class NeoConnection:
             except Exception as e:
                 print(f"Query failed: {e}")
 
-    def exec_transactions(self):
-        # Error handling
-        if(self.db_conn is None or self.session is None):
-            raise Exception("Connection not established... cannot execute transaction(s)!")
-
-        for i in self.transactions:
-            try:
-                self.session.run(i)
-            except Exception as e:
-                print(f"Transaction failed to execute: {e}")
-        
-        # Clear transactions
-        self.transactions.clear()
-    
     def get_users(self):
         return self.exec_query("MATCH (n:User) RETURN (n.username) AS username", getResult=True)
     
@@ -85,19 +71,6 @@ class NeoConnection:
         query = f'''CALL gds.graph.drop('{name}')'''
         self.exec_query(query, getResult = False)
 
-    def add_transactions(self, trans):
-        # Max size of a list on 32 bit system is ~530 million elements (PY_SSIZE_T_MAX/sizeof(PyObject*))
-        # See https://stackoverflow.com/questions/855191/how-big-can-a-python-list-get for more information
-        if len(self.transactions) >= 500000000:
-            self.exec_transactions()
-
-        if type(trans) is str:
-            self.transactions.append(trans)
-        elif type(trans) is list:
-            self.transactions.extend(trans)
-        else:
-            print(f"Error: transaction(s) must be string or list in order to be added.")
-    
     def close(self):
         if self.session is not None:
             self.session.close()
