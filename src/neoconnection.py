@@ -13,7 +13,10 @@ class NeoConnection:
             self.session = self.db_conn.session()
         except Exception as err:
             print(f"Failed to establish a connection: {err}")
-    
+
+    def get_session(self):
+        return self.session
+
     def exec_query(self, query, getResult):
         # Error handling
         if(self.db_conn is None or self.session is None):
