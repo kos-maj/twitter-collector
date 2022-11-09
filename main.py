@@ -6,6 +6,8 @@ from src.neoconnection import NeoConnection
 from src.neomethods import extract_identifiers
 from src.networkConstructors import buildTweetNetwork, buildUsernameNetwork
 from os import system
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 '''
 TO DO: tweepy client 'search_all_tweets(query, end_time, start_time, ...)' endpoint is only available
@@ -18,28 +20,35 @@ def main():
     g_conn = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
     client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
 
-    options = ["Usernames", "Tweet IDs", "Skip data extraction"]
-    option, index = pick(options , "Please select the data which will serve as input for the network constructor: ", indicator=">")
+    data_options = ["Usernames", "Tweet IDs", "Skip data extraction"]
+    data_type, index = pick(data_options , "Please select the data which will serve as input for the network constructor: ", indicator=">")
     identifiers = []
 
-    # Debugging
-    # base_usernames  = ['TenchiNFT', 'BillClinton']
-    # base_tweets     = ['1567933780635144194', '1568630126752964608'] 
-    # Debugging 
-    
+    time_options = ["Week", "Month", "3 Months"]
+    time_frame, index = pick(time_options , "Please select the desired time frame: ", indicator=">")
+    start_date = None
+
+    if(time_frame == time_options[0]):      # week
+        start_date = datetime.today() - relativedelta(weeks=1)
+    elif(time_frame == time_options[1]):    # month
+        start_date = datetime.today() - relativedelta(months=1)
+    elif(time_frame == time_options[2]):    # 3 months
+        start_date = datetime.today() - relativedelta(months=3)
+    else:                                   # other
+        input('not implemeneted...')
+        exit(0)
+
     print("[+] Extracting data and building network. This may take some time...")
-
-    if(option == options[0]):                                   # Build network from usernames
+    if(data_type == data_options[0]):                                   # Build network from usernames
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
-        buildUsernameNetwork(client, identifiers, g_conn)
-    elif(option == options[1]):                                 # Build network from tweet id's
+        buildUsernameNetwork(client, identifiers, start_date, g_conn)
+    elif(data_type == data_options[1]):                                 # Build network from tweet id's
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
-        buildTweetNetwork(client, identifiers, g_conn)
-
+        buildTweetNetwork(client, identifiers, start_date, g_conn)
     system('clear')
+
     options = ["Yes", "No"]
     option, index = pick(options, "\nDo you wish to run the page rank centrality algorithm on the network: ", indicator=">")
-    
     if(option == options[0]):
         g_conn.run_pageRank(name='annotatedOrganizations', entities=['Organization','Tweet'], rel='ANNOTATES', attribute='description')
         g_conn.run_pageRank(name='mentionedUsers', entities=['User','Tweet'], rel='MENTIONS', attribute='username')

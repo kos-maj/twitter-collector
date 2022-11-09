@@ -13,7 +13,10 @@ class NeoConnection:
             self.session = self.db_conn.session()
         except Exception as err:
             print(f"Failed to establish a connection: {err}")
-    
+
+    def get_session(self):
+        return self.session
+
     def exec_query(self, query, getResult):
         # Error handling
         if(self.db_conn is None or self.session is None):
@@ -83,6 +86,11 @@ class NeoConnection:
         self.exec_query(query, getResult = False)
 
     def add_transactions(self, trans):
+        # Max size of a list on 32 bit system is ~530 million elements (PY_SSIZE_T_MAX/sizeof(PyObject*))
+        # See https://stackoverflow.com/questions/855191/how-big-can-a-python-list-get for more information
+        if len(self.transactions) >= 500000000:
+            self.exec_transactions()
+
         if type(trans) is str:
             self.transactions.append(trans)
         elif type(trans) is list:
