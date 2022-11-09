@@ -3,7 +3,7 @@ from .neoconnection import NeoConnection
 from .neomethods import create_follows_relation, create_tweet_relation
 
 def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
-    usernames = []
+    all_usernames = []
     
     for tweet_id in tweet_ids:
         tweet = client.get_tweet(
@@ -13,9 +13,10 @@ def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
         if tweet.data is None:
             continue
 
-        username = client.get_user(id=tweet.data['author_id']).data['username']
-        usernames.append(username)
-        buildUsernameNetwork(client, usernames, start_date, connection)
+        username = [client.get_user(id=tweet.data['author_id']).data['username']]
+        if username[0] not in all_usernames:
+            all_usernames.append(username[0])
+            buildUsernameNetwork(client, username, start_date, connection)
 
         tweet_query =  connection.exec_query(
                         f'''MATCH (n:Tweet{{id: "{tweet_id}"}}) RETURN (n)''', 
