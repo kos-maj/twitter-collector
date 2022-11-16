@@ -1,5 +1,22 @@
 from .neoconnection import NeoConnection
 
+def update_tweet(session, tweet_id, likes, retweets, replies):
+    # Updates a tweet which already exists within the neo4j database
+    session.run("MATCH (t:Tweet {id: $id})"
+                "SET t.likes = $like_count"
+                "t.retweets: $retweet_count"
+                "t.replies: $reply_count",
+                id=tweet_id, like_count=likes, retweet_count=retweets, reply_count=replies
+    )
+
+def update_user(session, user_id, followers, following, tweet_count):
+    # Updates a user who already exists within the neo4j database
+    session.run("MATCH (n:User{id: $id})"
+                "SET n.followers = $followers, n.following = $following, n.tweet_count = $tweet_count",
+                id=user_id, followers=followers, following=following, tweet_count=tweet_count
+    )
+            
+
 def create_tweet_relation(user, tweet_id, relation, connection: NeoConnection):
     session = connection.get_session()
     username = str(user["username"]).replace('"', "")
