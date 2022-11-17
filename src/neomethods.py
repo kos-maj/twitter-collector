@@ -22,6 +22,28 @@ def update_user(session, user_data):
                 tweet_count=user_data['public_metrics']['tweet_count']
     )
 
+def get_users(connection: NeoConnection):
+    return connection.exec_query("MATCH (n:User) RETURN (n.username) AS username", getResult=True)
+    
+def get_tweets(connection: NeoConnection):
+    return connection.exec_query("MATCH (n:Tweet) RETURN (n.id) AS tweetId", getResult=True)
+
+def tweet_exists(connection: NeoConnection, tweet_id):
+    if len(connection.exec_query(
+        f'MATCH (n:Tweet{{id: {tweet_id}}}) RETURN (n)',
+        getResult=True
+    )):
+        return True
+    return False
+
+def user_exists(connection: NeoConnection, user_id):
+    if len(connection.exec_query(
+        f'MATCH (n:User{{id: {user_id}}}) RETURN (n)',
+        getResult=True
+    )):
+        return True
+    return False
+
 # def create_tweet():
 
 # def create_user():

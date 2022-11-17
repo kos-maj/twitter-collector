@@ -1,6 +1,6 @@
 from tweepy import Paginator
 from .neoconnection import NeoConnection
-from .neomethods import create_follows_relation, create_tweet_relation, update_tweet, update_user
+from .neomethods import *
 
 def buildHashtagNetwork(client, hashtag, start_date, connection: NeoConnection): 
     session = connection.get_session()
@@ -11,7 +11,6 @@ def buildHashtagNetwork(client, hashtag, start_date, connection: NeoConnection):
         max_results=100,
         tweet_fields=["created_at", "public_metrics", "entities"]
     )
-
 
 def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
     all_usernames = []
@@ -30,7 +29,7 @@ def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
             all_usernames.append(username[0])
             buildUsernameNetwork(client, username, start_date, connection)
 
-        if connection.tweet_exists(tweet_id):       # Tweet existent in graph
+        if tweet_exists(connection, tweet_id):       # Tweet existent in graph
             update_tweet(session, tweet.data);  
         else:
             # Import tweet into neo4j
@@ -79,7 +78,7 @@ def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnectio
         if user.data is None:
             continue
 
-        if connection.user_exists(user.data['id']):     # User existent in graph
+        if user_exists(connection, user.data['id']):     # User existent in graph
             update_user(session, user.data);    
         else:
             # Import user into neo4j
