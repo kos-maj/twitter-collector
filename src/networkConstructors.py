@@ -30,11 +30,7 @@ def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
             all_usernames.append(username[0])
             buildUsernameNetwork(client, username, start_date, connection)
 
-        tweet_query = connection.exec_query(
-            f"""MATCH (n:Tweet{{id: {tweet_id}}}) RETURN (n)""", getResult=True
-        )
-
-        if len(tweet_query):  # Tweet already exists within neo4j
+        if connection.tweet_exists(tweet_id):       # Tweet existent in graph
             update_tweet(session, tweet.data);  
         else:
             # Import tweet into neo4j
@@ -83,10 +79,7 @@ def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnectio
         if user.data is None:
             continue
 
-        user_query = connection.exec_query(
-            f"""MATCH (n:User{{id: {user.data['id']}}}) RETURN (n)""", getResult=True
-        )
-        if len(user_query):             # User already exists in neo4j
+        if connection.user_exists(user.data['id']):     # User existent in graph
             update_user(session, user.data);    
         else:
             # Import user into neo4j

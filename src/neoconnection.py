@@ -44,6 +44,22 @@ class NeoConnection:
     def get_tweets(self):
         return self.exec_query("MATCH (n:Tweet RETURN (n.id) AS tweetId", getResult=True)
 
+    def tweet_exists(self, tweet_id):
+        if len(self.exec_query(
+            f'MATCH (n:Tweet{{id: {tweet_id}}}) RETURN (n)',
+            getResult=True
+        )):
+            return True
+        return False
+    
+    def user_exists(self, user_id):
+        if len(self.exec_query(
+            f'MATCH (n:User{{id: {user_id}}}) RETURN (n)',
+            getResult=True
+        )):
+            return True
+        return False
+
     def run_pageRank(self, name, entities, rel, attribute):
         from pandas import DataFrame
         limit = 10
