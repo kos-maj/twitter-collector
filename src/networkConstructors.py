@@ -2,6 +2,17 @@ from tweepy import Paginator
 from .neoconnection import NeoConnection
 from .neomethods import create_follows_relation, create_tweet_relation, update_tweet, update_user
 
+def buildHashtagNetwork(client, hashtag, start_date, connection: NeoConnection): 
+    session = connection.get_session()
+    query = f'#{hashtag} lang:en -is:retweet';
+    tweets = client.search_all_tweets(
+        query=query,
+        start_time=start_date,
+        max_results=100,
+        tweet_fields=["created_at", "public_metrics", "entities"]
+    )
+
+
 def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
     all_usernames = []
     session = connection.get_session()
@@ -24,14 +35,7 @@ def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
         )
 
         if len(tweet_query):  # Tweet already exists within neo4j
-            # Update volatile data
-            update_tweet(
-                session=session,
-                tweet_id=tweet_id,
-                likes=tweet.data['public_metrics']['like_count'],
-                retweets=tweet.data['public_metrics']['retweet_count'],
-                replies=tweet.data['public_metrics']['reply_count']
-            )
+            update_tweet(session, tweet.data);  
         else:
             # Import tweet into neo4j
             tweet_id = tweet.data["id"]
@@ -82,15 +86,8 @@ def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnectio
         user_query = connection.exec_query(
             f"""MATCH (n:User{{id: {user.data['id']}}}) RETURN (n)""", getResult=True
         )
-        if len(user_query):  # User already exists in neo4j
-            # Update volatile data
-            update_user(
-                session,
-                user_id=user.data['id'],
-                followers=user.data['public_metrics']['followers_count'],
-                following=user.data['public_metrics']['following_count'],
-                tweet_count=user.data['public_metrics']['tweet_count']
-            )
+        if len(user_query):             # User already exists in neo4j
+            update_user(session, user.data);    
         else:
             # Import user into neo4j
             session.run("CREATE (:User{\
