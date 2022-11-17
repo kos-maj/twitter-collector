@@ -2,17 +2,21 @@ from tweepy import Paginator
 from .neoconnection import NeoConnection
 from .neomethods import *
 
-def buildHashtagNetwork(client, hashtag, start_date, connection: NeoConnection): 
-    session = connection.get_session()
+def buildHashtagNetwork(connection: NeoConnection, client, hashtag, start_date): 
     query = f'#{hashtag} lang:en -is:retweet';
-    tweets = client.search_all_tweets(
+    
+    for tweets in Paginator(
+        client.search_all_tweets,
         query=query,
         start_time=start_date,
         max_results=100,
         tweet_fields=["created_at", "public_metrics", "entities"]
-    )
+    ):
+        if tweets.data:
+            for tweet in tweets.data:
+                create_tweet(connection, tweet)
 
-def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
+def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date):
     all_usernames = []
     session = connection.get_session()
 
@@ -36,7 +40,7 @@ def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
             create_tweet(connection, tweet.data)
             create_author(connection, author.data['id'], tweet_id)
 
-def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnection):
+def buildUsernameNetwork(connection: NeoConnection, client, usernames, start_date):
     for username in usernames:
         user = client.get_user(
             username=username,
