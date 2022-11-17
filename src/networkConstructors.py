@@ -1,6 +1,6 @@
 from tweepy import Paginator
 from .neoconnection import NeoConnection
-from .neomethods import create_follows_relation, create_tweet_relation
+from .neomethods import create_follows_relation, create_tweet_relation, update_tweet, update_user
 
 def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
     all_usernames = []
@@ -25,13 +25,12 @@ def buildTweetNetwork(client, tweet_ids, start_date, connection: NeoConnection):
 
         if len(tweet_query):  # Tweet already exists within neo4j
             # Update volatile data
-            session.run("MATCH (t:Tweet {id: $id})"
-                        "SET t.likes = $like_count"
-                        "t.retweets: $retweet_count"
-                        "t.replies: $reply_count",
-                        id = tweet_id, like_count = tweet.data['public_metrics']['like_count'], 
-                        retweet_count = tweet.data['public_metrics']['retweet_count'],
-                        reply_count = tweet.data['public_metrics']['reply_count']
+            update_tweet(
+                session=session,
+                tweet_id=tweet_id,
+                likes=tweet.data['public_metrics']['like_count'],
+                retweets=tweet.data['public_metrics']['retweet_count'],
+                replies=tweet.data['public_metrics']['reply_count']
             )
         else:
             # Import tweet into neo4j
@@ -85,10 +84,12 @@ def buildUsernameNetwork(client, usernames, start_date, connection: NeoConnectio
         )
         if len(user_query):  # User already exists in neo4j
             # Update volatile data
-            session.run("MATCH (n:User{id: $id})"
-                        "SET n.followers = $followers, n.following = $following, n.tweet_count = $tweet_count",
-                        id = user.data['id'], followers = user.data['public_metrics']['followers_count'],
-                        following = user.data['public_metrics']['following_count'], tweet_count = user.data['public_metrics']['tweet_count']
+            update_user(
+                session,
+                user_id=user.data['id'],
+                followers=user.data['public_metrics']['followers_count'],
+                following=user.data['public_metrics']['following_count'],
+                tweet_count=user.data['public_metrics']['tweet_count']
             )
         else:
             # Import user into neo4j
