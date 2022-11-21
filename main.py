@@ -29,7 +29,7 @@ def main():
     start_date = None
 
     if(time_frame == time_options[0]):      # day
-        start_date = datetime.today() - relativedelta(days=1)
+        start_date = datetime.today() - relativedelta(hours=12)
     elif(time_frame == time_options[1]):    # week
         start_date = datetime.today() - relativedelta(weeks=1)
     elif(time_frame == time_options[2]):    # month
@@ -40,18 +40,21 @@ def main():
         input('not implemeneted...')
         exit(0)
 
+    relation_options = ['follow', 'retweet', 'like', 'embed', 'mention']
+
     if(data_type == data_options[0]):                                   # Build network from usernames
         print("[+] Extracting data and building network. This may take some time...")
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
-        buildUsernameNetwork(connection, client, identifiers, start_date)
+        buildUsernameNetwork(connection, client, identifiers, start_date, relation_options)
     elif(data_type == data_options[1]):                                 # Build network from tweet id's
         print("[+] Extracting data and building network. This may take some time...")
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
-        buildTweetNetwork(connection, client, identifiers, start_date)
-    elif(data_type == data_options[2]):             # hashtag
-        hashtag = input("Enter the hashtag you wish to search for: ")
+        buildTweetNetwork(connection, client, identifiers, start_date, relation_options)
+    elif(data_type == data_options[2]):                                 # Build network from hashtag(s)
+        # hashtag = input("Enter the hashtag you wish to search for: ")
+        hashtag = ['NATOPAMadrid', 'NATOSummit']
         print("[+] Extracting data and building network. This may take some time...")
-        buildHashtagNetwork(connection, client, hashtag, start_date) 
+        buildHashtagNetwork(connection, client, hashtag, start_date, relation_options) 
 
     system('clear')
 
