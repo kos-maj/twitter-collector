@@ -2,7 +2,7 @@ from tweepy import Paginator
 from .neoconnection import NeoConnection
 from .neomethods import *
 
-def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date, relation_options): 
+def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date, relations): 
     query = '';
     if isinstance(hashtags, list):              
         for hashtag in hashtags:
