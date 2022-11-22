@@ -199,22 +199,6 @@ def create_follower(connection: NeoConnection, follower, user_id):
             user_id=user_id
         )
 
-def create_follows_relation(session, user, main_username):
-    username = str(user["username"]).replace('"', "")
-    name = str(user["name"]).replace('"', "")
-
-    session.run("MERGE (:Follower {username: $username, id: $id, name: $name})",
-                username = username, id = user['id'], name = name
-    )
-    session.run("MATCH (p1:Follower {username: $username}), (p2:User {username: $main_username})"
-                "CREATE (p1)-[:FOLLOWS]->(p2)",
-                username = username, main_username = main_username
-    )
-    session.run("MATCH (p1:User {username: $username}), (p2:User {username: $main_username})"
-                "CREATE (p1)-[:FOLLOWS]->(p2)",
-                username = username, main_username = main_username
-    )
-
 def extract_identifiers(*, path: str, data: list):
     # Extracts the id's provided at the given path. Assumes each id is seperated by a newline character.
     #
