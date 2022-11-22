@@ -22,7 +22,7 @@ def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date,
             for tweet in tweets.data:
                 create_tweet(connection, tweet)
 
-def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, relation_options):
+def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, relations):
     all_usernames = []
     session = connection.get_session()
 
@@ -38,7 +38,7 @@ def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, 
         author_username = [author.data['username']]
         if author_username[0] not in all_usernames:
             all_usernames.append(author_username[0])
-            buildUsernameNetwork(client, author_username, start_date, connection)
+            buildUsernameNetwork(connection, client, author_username, start_date, relations)
 
         if tweet_exists(connection, tweet_id):       # Tweet existent in graph
             update_tweet(session, tweet.data)  

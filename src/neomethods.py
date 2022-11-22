@@ -43,7 +43,7 @@ def user_exists(connection: NeoConnection, user_id):
         return True
     return False
 
-def create_tweet(connection: NeoConnection, tweet_data):
+def create_tweet(connection: NeoConnection, tweet_data, relations):
     # Creates a new tweet within the neo4j session provided.
     if tweet_exists(connection, tweet_data['id']):
         return
@@ -68,9 +68,9 @@ def create_tweet(connection: NeoConnection, tweet_data):
         text = formatted_text
     )
 
-    # Push data regarding annotated entities
+    # Push data regarding annotated entities (if specified in relations parameter)
     if "entities" in tweet_data:
-        if "mentions" in tweet_data["entities"]:
+        if ("mentions" in tweet_data["entities"] and "mention" in relations):
             for user in tweet_data["entities"]["mentions"]:
                 connection.get_session().run(
                     "MERGE (u:User {username: $username, id: $id})"
@@ -81,7 +81,7 @@ def create_tweet(connection: NeoConnection, tweet_data):
                     tweet_id = tweet_data['id']
                 )
 
-        if "annotations" in tweet_data["entities"]:
+        if ("annotations" in tweet_data["entities"] and "embed" in relations):
             for annotation in tweet_data["entities"]["annotations"]:
                 transaction = "MERGE (a:{} {{description: $desc}})\
                                 MERGE (t:Tweet {{id: $id}})\
@@ -93,7 +93,7 @@ def create_tweet(connection: NeoConnection, tweet_data):
                     probability = annotation['probability']
                 )
 
-def create_user(connection:NeoConnection, client, user_data, start_date):
+def create_user(connection:NeoConnection, client, user_data, start_date, relations):
     # Creates a new user within the neo4j session provided. 
     # Also pulls all data relating to the user including their tweets and followers.
     if user_exists(connection, user_data['id']):
@@ -121,9 +121,10 @@ def create_user(connection:NeoConnection, client, user_data, start_date):
     )
 
     # Import followers
-    followers = client.get_users_followers(id=user_data["id"])
-    for follower in followers.data:
-        create_follower(connection, follower, user_data['id'])
+    if "follow" in relations:
+        followers = client.get_users_followers(id=user_data["id"])
+        for follower in followers.data:
+            create_follower(connection, follower, user_data['id'])
 
     # Import tweets
     for tweets in Paginator(
@@ -135,7 +136,7 @@ def create_user(connection:NeoConnection, client, user_data, start_date):
     ):
         if tweets.data:
             for tweet in tweets.data:
-                create_tweet(connection, tweet)
+                create_tweet(connection, tweet, relations)
                 create_author(connection, user_data['id'], tweet['id'])
 
     # Add likes/retweets in neo4j
