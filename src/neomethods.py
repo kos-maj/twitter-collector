@@ -139,16 +139,18 @@ def create_user(connection:NeoConnection, client, user_data, start_date, relatio
                 create_tweet(connection, tweet, relations)
                 create_author(connection, user_data['id'], tweet['id'])
 
-    # Add likes/retweets in neo4j
-    # likes    = client.get_liking_users(id=tweet['id'])
-    # retweets = client.get_retweeters(id=tweet['id'])
-    # if likes.data:
-    # for tmp_user in likes.data:
-    # create_tweet_relation(tmp_user, tweet_id, 'LIKED', connection)
-    # if retweets.data:
-    # for tmp_user in retweets.data:
-    # create_tweet_relation(tmp_user, tweet_id, 'RETWEETED', connection)
+                # Import likes/retweets
+                if "like" in relations:
+                    likes = client.get_liking_users(id=tweet['id'])
+                    if likes.data:
+                        for tmp_user in likes.data:
+                            create_tweet_relation(connection, tmp_user, tweet['id'], 'LIKED')
 
+                if "retweet" in relations:
+                    retweets = client.get_retweeters(id=tweet['id'])
+                    if retweets.data:
+                        for tmp_user in retweets.data:
+                            create_tweet_relation(connection, tmp_user, tweet['id'], 'RETWEETED')
 
 def create_author(connection: NeoConnection, user_id, tweet_id):
     # Creates author relationship between provided user and tweet
@@ -156,28 +158,31 @@ def create_author(connection: NeoConnection, user_id, tweet_id):
         raise Exception("User/Tweet non-existent - failed to create author relation")
 
     connection.get_session().run(
-        "MATCH (u:User{id: $user_id})"
-        "MATCH (t:Tweet{id: $tweet_id})"
-        "CREATE (u)-[:AUTHORED]->(t)",
+        "MERGE (u:User{id: $user_id})"
+        "MERGE (t:Tweet{id: $tweet_id})"
+        "MERGE (u)-[:AUTHORED]->(t)",
         user_id=user_id, tweet_id=tweet_id
     ) 
 
-def create_tweet_relation(user, tweet_id, relation, connection: NeoConnection):
-    session = connection.get_session()
+def create_tweet_relation(connection: NeoConnection, user, tweet_id, relation):
     username = str(user["username"]).replace('"', "")
     name = str(user["name"]).replace('"', "")
 
-    session.run("MERGE (:Follower {username: $username, user_id: $id, name: $name)",
-                username = username, id = user['id'], name = name
-    )
-    session.run("MATCH (p:Follower {username: $username}), t(Tweet {id: $id})"
-                "CREATE (p)-[:$relation]->(t)",
-                username = username, id = tweet_id, relation = relation
-    )
-    session.run("MATCH (p:User {username: $username}), (t:Tweet {id: $id})"
-                "CREATE (p)-[:$relation]->(t)",
-                username = username, id = tweet_id, relation = relation
-    )
+    if user_exists(connection, user['id']):
+        transaction = "MERGE (p:User {{username: $username}}), (t:Tweet {{id: $id}})\
+                       MERGE (p)-[:{}]->(t)".format(relation)
+        connection.get_session().run(
+            transaction,
+            username=username, id=tweet_id, relation=relation
+        )
+    else:
+        transaction = "MERGE (p:Follower {{username: $username, id: $id, name: $name}})\
+                       MERGE (t:Tweet {{id: $tweet_id}})\
+                       MERGE (p)-[:{}]->(t)".format(relation)
+        connection.get_session().run(
+            transaction, 
+            username=username, id=user['id'], name=name, tweet_id=tweet_id
+        )
 
 def create_follower(connection: NeoConnection, follower, user_id):
     follower_username = str(follower['username']).replace('"', "")
@@ -185,16 +190,16 @@ def create_follower(connection: NeoConnection, follower, user_id):
 
     if user_exists(connection, follower['id']):     # Follower exists as a User within graph
         connection.get_session().run(
-            "MATCH (f:User {id: $f_id})"
-            "MATCH (u:User {id: $user_id})"
-            "CREATE (f)-[:FOLLOWS]->(u)",
+            "MERGE (f:User {id: $f_id})"
+            "MERGE (u:User {id: $user_id})"
+            "MERGE (f)-[:FOLLOWS]->(u)",
             f_id=follower['id'], user_id=user_id 
         ) 
     else:
         connection.get_session().run(
             "MERGE (f:Follower {username: $f_username, id: $f_id, name: $f_name})"
             "MERGE (u:User {id: $user_id})"
-            "CREATE (f)-[:FOLLOWS]->(u)",
+            "MERGE (f)-[:FOLLOWS]->(u)",
             f_username=follower_username, f_id=follower['id'], f_name=follower_name,
             user_id=user_id
         )
