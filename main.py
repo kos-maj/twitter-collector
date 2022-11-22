@@ -1,6 +1,7 @@
 import tweepy
 import src.config as config
 
+from elasticsearch import Elasticsearch
 from pick import pick
 from src.neoconnection import NeoConnection
 from src.neomethods import extract_identifiers
@@ -17,6 +18,27 @@ to those who have been approved for the Academic Research product track. Need be
 def main():
     system('clear')
 
+    es_client = Elasticsearch(
+        "https://localhost:9200",
+        ca_certs="./src/http_ca.crt",
+        basic_auth=("elastic", config.ELASTIC_PASSWORD)
+    )
+
+    # DOES TWEET EXIST
+
+    # CREATE AN INDEX
+
+    # CREATE A TWEET DOC
+
+    # UPDATE A TWEET DOC
+
+    # DELETE AN INDEX
+
+
+    print(es_client.indices.exists(index='tweet-index'))
+    print(es_client.get(index='tweet-index', id=19213)['_source'])
+    es_client.close();
+    return 
     connection = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
     client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
 

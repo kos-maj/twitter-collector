@@ -2,3 +2,4 @@ config.py
 __pycache__
 docker/data
 data/
+http_ca.crt
