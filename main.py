@@ -17,28 +17,52 @@ to those who have been approved for the Academic Research product track. Need be
 
 def main():
     system('clear')
-
+    '''
     es_client = Elasticsearch(
         "https://localhost:9200",
         ca_certs="./src/http_ca.crt",
         basic_auth=("elastic", config.ELASTIC_PASSWORD)
     )
 
+    index = 'tweet-index'
+    # DOES INDEX EXIST
+    es_client.indices.exists(index=index)    # True
+
     # DOES TWEET EXIST
+    es_client.exists(index='tweet-index', id=19213)      # True
+    es_client.exists(index='tweet-index', id=19211)      # False
 
     # CREATE AN INDEX
+    try:
+        es_client.indices.create(index='users')
+    except Exception  as e:
+        print('error: index already exists')
+
+    tweet_data = {
+        "likes": 333,
+        "retweets": 333,
+    }
 
     # CREATE A TWEET DOC
+    try:
+        es_client.create(index=index, id=101, document=tweet_data)
+    except Exception as e:
+        print('error: doc already exists')
 
     # UPDATE A TWEET DOC
+    es_client.update(index=index, id=101, doc=tweet_data)
 
     # DELETE AN INDEX
+    try:
+        es_client.indices.delete(index='users')
+    except Exception as e:
+        print('error: non-existent index')
 
 
-    print(es_client.indices.exists(index='tweet-index'))
-    print(es_client.get(index='tweet-index', id=19213)['_source'])
     es_client.close();
-    return 
+    return
+    ''' 
+
     connection = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
     client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
 
@@ -62,7 +86,8 @@ def main():
         input('not implemeneted...')
         exit(0)
 
-    relation_options = ['follow', 'retweet', 'like', 'embed', 'mention']
+    # relation_options = ['follow', 'retweet', 'like', 'embed', 'mention']
+    relation_options = ['follow', 'embed', 'mention']
 
     if(data_type == data_options[0]):                                   # Build network from usernames
         print("[+] Extracting data and building network. This may take some time...")
