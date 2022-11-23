@@ -83,25 +83,26 @@ def main():
     elif(time_frame == time_options[3]):    # 3 months
         start_date = datetime.today() - relativedelta(months=3)
     else:                                   # other
-        input('not implemeneted...')
+        input('not implemented...')
         exit(0)
 
     # relation_options = ['follow', 'retweet', 'like', 'embed', 'mention']
     relation_options = ['follow', 'embed', 'mention']
+    es_index_name = 'tweet-index'
 
     if(data_type == data_options[0]):                                   # Build network from usernames
         print("[+] Extracting data and building network. This may take some time...")
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
-        buildUsernameNetwork(connection, client, identifiers, start_date, relation_options)
+        buildUsernameNetwork(connection, client, identifiers, start_date, relation_options, es_index_name)
     elif(data_type == data_options[1]):                                 # Build network from tweet id's
         print("[+] Extracting data and building network. This may take some time...")
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
-        buildTweetNetwork(connection, client, identifiers, start_date, relation_options)
+        buildTweetNetwork(connection, client, identifiers, start_date, relation_options, es_index_name)
     elif(data_type == data_options[2]):                                 # Build network from hashtag(s)
         # hashtag = input("Enter the hashtag you wish to search for: ")
         hashtag = ['NATOPAMadrid', 'NATOSummit']
         print("[+] Extracting data and building network. This may take some time...")
-        buildHashtagNetwork(connection, client, hashtag, start_date, relation_options) 
+        buildHashtagNetwork(connection, client, hashtag, start_date, relation_options, es_index_name) 
 
     system('clear')
 

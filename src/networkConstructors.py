@@ -2,7 +2,7 @@ from tweepy import Paginator
 from .neoconnection import NeoConnection
 from .neomethods import *
 
-def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date, relations): 
+def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date, relations, es_index_name): 
     query = '';
     if isinstance(hashtags, list):              
         for hashtag in hashtags:
@@ -20,9 +20,9 @@ def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date,
     ):
         if tweets.data:
             for tweet in tweets.data:
-                create_tweet(connection, tweet, relations)
+                create_tweet(connection, tweet, relations, es_index_name)
 
-def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, relations):
+def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, relations, es_index_name):
     all_usernames = []
     session = connection.get_session()
 
@@ -38,15 +38,15 @@ def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, 
         author_username = [author.data['username']]
         if author_username[0] not in all_usernames:
             all_usernames.append(author_username[0])
-            buildUsernameNetwork(connection, client, author_username, start_date, relations)
+            buildUsernameNetwork(connection, client, author_username, start_date, relations, es_index_name)
 
         if tweet_exists(connection, tweet_id):       # Tweet existent in graph
             update_tweet(session, tweet.data)  
         else:
-            create_tweet(connection, tweet.data, relations)
+            create_tweet(connection, tweet.data, relations, es_index_name)
             create_author(connection, author.data['id'], tweet_id)
 
-def buildUsernameNetwork(connection: NeoConnection, client, usernames, start_date, relations):
+def buildUsernameNetwork(connection: NeoConnection, client, usernames, start_date, relations, es_index_name):
     for username in usernames:
         user = client.get_user(
             username=username,
@@ -64,4 +64,4 @@ def buildUsernameNetwork(connection: NeoConnection, client, usernames, start_dat
         if user_exists(connection, user.data['id']):
             update_user(connection.get_session(), user.data);    
         else:
-            create_user(connection, client, user.data, start_date, relations)
+            create_user(connection, client, user.data, start_date, relations, es_index_name)

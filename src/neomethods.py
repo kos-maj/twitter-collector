@@ -43,7 +43,7 @@ def user_exists(connection: NeoConnection, user_id):
         return True
     return False
 
-def create_tweet(connection: NeoConnection, tweet_data, relations):
+def create_tweet(connection: NeoConnection, tweet_data, relations, es_index_name):
     # Creates a new tweet within the neo4j session provided.
     if tweet_exists(connection, tweet_data['id']):
         return
@@ -66,6 +66,14 @@ def create_tweet(connection: NeoConnection, tweet_data, relations):
         retweets = tweet_data['public_metrics']['retweet_count'],
         replies = tweet_data['public_metrics']['reply_count'], 
         text = formatted_text
+    )
+
+    # Link tweet to aux node
+    connection.get_session().run(
+        "MERGE (t:Tweet {id: $tweet_id})"
+        "MERGE (a:Auxiliary {name: $index_name})"
+        "MERGE (t)-[:BELONGS]->(a)",
+        tweet_id = tweet_data['id'], index_name = es_index_name
     )
 
     # Push data regarding annotated entities (if specified in relations parameter)
@@ -93,7 +101,7 @@ def create_tweet(connection: NeoConnection, tweet_data, relations):
                     probability = annotation['probability']
                 )
 
-def create_user(connection:NeoConnection, client, user_data, start_date, relations):
+def create_user(connection:NeoConnection, client, user_data, start_date, relations, es_index_name):
     # Creates a new user within the neo4j session provided. 
     # Also pulls all data relating to the user including their tweets and followers.
     if user_exists(connection, user_data['id']):
@@ -120,6 +128,14 @@ def create_user(connection:NeoConnection, client, user_data, start_date, relatio
         created_on = str(user_data['created_at'])[0:10]
     )
 
+    # Link user to aux node
+    connection.get_session().run(
+        "MERGE (u:User {id: $user_id})"
+        "MERGE (a:Auxiliary {name: $index_name})"
+        "MERGE (u)-[:BELONGS]->(a)",
+        user_id = user_data['id'], index_name = es_index_name
+    )
+
     # Import followers
     if "follow" in relations:
         followers = client.get_users_followers(id=user_data["id"])
@@ -136,7 +152,7 @@ def create_user(connection:NeoConnection, client, user_data, start_date, relatio
     ):
         if tweets.data:
             for tweet in tweets.data:
-                create_tweet(connection, tweet, relations)
+                create_tweet(connection, tweet, relations, es_index_name)
                 create_author(connection, user_data['id'], tweet['id'])
 
                 # Import likes/retweets
