@@ -38,7 +38,7 @@ def build_tweet_collection(connection: NeoConnection, client, tweet_ids, start_d
         author_username = [author.data['username']]
         if author_username[0] not in all_usernames:
             all_usernames.append(author_username[0])
-            buildUsernameNetwork(connection, client, author_username, start_date, relations, es_index_name)
+            build_username_collection(connection, client, author_username, start_date, relations, es_index_name)
 
         if tweet_exists(connection, tweet_id):       # Tweet existent in graph
             update_tweet(session, tweet.data)  
