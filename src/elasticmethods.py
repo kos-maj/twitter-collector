@@ -1,4 +1,6 @@
-def create_index(client, index_name):
+from elasticsearch import Elasticsearch
+
+def create_index(client: Elasticsearch, index_name):
     '''
     Attempts to create an index at the connection provided by client (ElasticSearch client).
     Returns:    1 if successful
@@ -14,7 +16,7 @@ def create_index(client, index_name):
 
     return 1
 
-def delete_index(client, index_name):
+def delete_index(client: Elasticsearch, index_name):
     '''
     Attempts to delete an index at the connection provided by client (ElasticSearch client).
     Returns:    1 if successful
@@ -30,7 +32,7 @@ def delete_index(client, index_name):
     
     return 1
 
-def update_doc(client, index_name, doc_data):
+def update_doc(client: Elasticsearch, index_name, doc_data):
     '''
     Attempts to update a document within the provided index.
     Returns:    1 if successful
@@ -44,7 +46,7 @@ def update_doc(client, index_name, doc_data):
     except Exception as e:
         print('[-] Error: ', e)
 
-def create_doc(client, index_name, doc_data):
+def create_doc(client: Elasticsearch, index_name, doc_data):
     '''
     Attempts to create a document within the provided index.
     Returns:    1 if successful
