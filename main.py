@@ -17,54 +17,20 @@ to those who have been approved for the Academic Research product track. Need be
 
 def main():
     system('clear')
-    '''
-    es_client = Elasticsearch(
-        "https://localhost:9200",
-        ca_certs="./src/http_ca.crt",
-        basic_auth=("elastic", config.ELASTIC_PASSWORD)
-    )
 
-    index = 'tweet-index'
-    # DOES INDEX EXIST
-    es_client.indices.exists(index=index)    # True
-
-    # DOES TWEET EXIST
-    es_client.exists(index='tweet-index', id=19213)      # True
-    es_client.exists(index='tweet-index', id=19211)      # False
-
-    # CREATE AN INDEX
+    neo_connection, neo_client, es_client = None, None, None
     try:
-        es_client.indices.create(index='users')
-    except Exception  as e:
-        print('error: index already exists')
+        neo_connection  = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
+        neo_client      = tweepy.Client(bearer_token=config.BEARER_TOKEN)
 
-    tweet_data = {
-        "likes": 333,
-        "retweets": 333,
-    }
-
-    # CREATE A TWEET DOC
-    try:
-        es_client.create(index=index, id=101, document=tweet_data)
+        es_client       = Elasticsearch(
+            "https://localhost:9200",
+            ca_certs="./src/http_ca.crt",
+            basic_auth=("elastic", config.ELASTIC_PASSWORD)
+        )
     except Exception as e:
-        print('error: doc already exists')
-
-    # UPDATE A TWEET DOC
-    es_client.update(index=index, id=101, doc=tweet_data)
-
-    # DELETE AN INDEX
-    try:
-        es_client.indices.delete(index='users')
-    except Exception as e:
-        print('error: non-existent index')
-
-
-    es_client.close();
-    return
-    ''' 
-
-    connection = NeoConnection(uri="bolt://127.0.0.1:7687", user="neo4j", pwd="testing123")
-    client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
+        print('[-] Error: ', e)
+        return 0
 
     data_options = ["Usernames", "Tweet IDs", "Hashtag", "Skip data extraction"]
     data_type, index = pick(data_options , "Please select the data which will serve as input for the network constructor: ", indicator=">")
@@ -93,14 +59,14 @@ def main():
     print("[+] Extracting data and building network. This may take some time...")
     if(data_type == data_options[0]):                                   # Build network from usernames
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
-        buildUsernameNetwork(connection, client, identifiers, start_date, relation_options, es_index_name)
+        buildUsernameNetwork(neo_connection, neo_client, identifiers, start_date, relation_options, es_index_name)
     elif(data_type == data_options[1]):                                 # Build network from tweet id's
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
-        buildTweetNetwork(connection, client, identifiers, start_date, relation_options, es_index_name)
+        buildTweetNetwork(neo_connection, neo_client, identifiers, start_date, relation_options, es_index_name)
     elif(data_type == data_options[2]):                                 # Build network from hashtag(s)
         # hashtag = input("Enter the hashtag you wish to search for: ")
         hashtag = ['NATOPAMadrid', 'NATOSummit']
-        buildHashtagNetwork(connection, client, hashtag, start_date, relation_options, es_index_name) 
+        buildHashtagNetwork(neo_connection, neo_client, hashtag, start_date, relation_options, es_index_name) 
 
     system('clear')
 
@@ -133,7 +99,8 @@ def main():
         #     elif(option == options[1]):                 # Tweet subgraph
         #         input("not implemented yet...\n\nPress enter to continue...") 
             
-    connection.close()
+    neo_connection.close()
+    es_client.close()
     print("\n[+] Program finished.")
     return 0
 
