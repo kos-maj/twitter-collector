@@ -5,7 +5,7 @@ from elasticsearch import Elasticsearch
 from pick import pick
 from src.neoconnection import NeoConnection
 from src.neomethods import extract_identifiers
-from src.networkConstructors import buildTweetNetwork, buildUsernameNetwork, buildHashtagNetwork
+from src.collection_constructors import build_tweet_collection, build_username_collection, build_hashtag_collection
 from os import system
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -59,14 +59,14 @@ def main():
     print("[+] Extracting data and building network. This may take some time...")
     if(data_type == data_options[0]):                                   # Build network from usernames
         extract_identifiers(path='./data/usernames.txt', data=identifiers)
-        buildUsernameNetwork(neo_connection, neo_client, identifiers, start_date, relation_options, es_index_name)
+        build_username_collection(neo_connection, neo_client, es_client, identifiers, start_date, relation_options, es_index_name)
     elif(data_type == data_options[1]):                                 # Build network from tweet id's
         extract_identifiers(path='./data/tweets.txt', data=identifiers)
-        buildTweetNetwork(neo_connection, neo_client, identifiers, start_date, relation_options, es_index_name)
+        build_tweet_collection(neo_connection, neo_client, es_client, identifiers, start_date, relation_options, es_index_name)
     elif(data_type == data_options[2]):                                 # Build network from hashtag(s)
         # hashtag = input("Enter the hashtag you wish to search for: ")
-        hashtag = ['NATOPAMadrid', 'NATOSummit']
-        buildHashtagNetwork(neo_connection, neo_client, hashtag, start_date, relation_options, es_index_name) 
+        hashtags = ['NATOPAMadrid', 'NATOSummit']
+        build_hashtag_collection(neo_connection, neo_client, es_client, hashtags, start_date, relation_options, es_index_name) 
 
     system('clear')
 
