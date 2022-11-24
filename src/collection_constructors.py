@@ -2,7 +2,7 @@ from tweepy import Paginator
 from .neoconnection import NeoConnection
 from .neomethods import *
 
-def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date, relations, es_index_name): 
+def build_hashtag_collection(connection: NeoConnection, client, hashtags, start_date, relations, es_index_name): 
     query = '';
     if isinstance(hashtags, list):              
         for hashtag in hashtags:
@@ -22,7 +22,7 @@ def buildHashtagNetwork(connection: NeoConnection, client, hashtags, start_date,
             for tweet in tweets.data:
                 create_tweet(connection, tweet, relations, es_index_name)
 
-def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, relations, es_index_name):
+def build_tweet_collection(connection: NeoConnection, client, tweet_ids, start_date, relations, es_index_name):
     all_usernames = []
     session = connection.get_session()
 
@@ -46,7 +46,7 @@ def buildTweetNetwork(connection: NeoConnection, client, tweet_ids, start_date, 
             create_tweet(connection, tweet.data, relations, es_index_name)
             create_author(connection, author.data['id'], tweet_id)
 
-def buildUsernameNetwork(connection: NeoConnection, client, usernames, start_date, relations, es_index_name):
+def build_username_collection(connection: NeoConnection, client, usernames, start_date, relations, es_index_name):
     for username in usernames:
         user = client.get_user(
             username=username,
