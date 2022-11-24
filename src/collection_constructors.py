@@ -2,6 +2,7 @@ from tweepy import Paginator, Client
 from elasticsearch import Elasticsearch
 from .neoconnection import NeoConnection
 from .neomethods import *
+from .elasticmethods import *
 
 def build_hashtag_collection(neo_connection: NeoConnection, neo_client: Client, es_client: Elasticsearch, hashtags, start_date, relations, es_index_name): 
     query = '';
