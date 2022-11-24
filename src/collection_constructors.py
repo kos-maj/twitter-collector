@@ -25,13 +25,21 @@ def build_hashtag_collection(neo_connection: NeoConnection, neo_client: Client, 
                 create_tweet(neo_connection, tweet, relations, es_index_name)
 
                 # Format data for ES ingestion
+                doc = {
+                    'id': tweet.data['id'],
+                    'created_on': tweet.data['created_at'],
+                    'likes': tweet.data['public_metrics']['like_count'],
+                    'retweets': tweet.data['public_metrics']['retweet_count'],
+                    'replies': tweet.data['public_metrics']['reply_count'],
+                    'text': tweet.data['text']
+                }
 
                 # Merge into elastic search (handles both update or creation)
                 merge_doc(
                     client=es_client, 
                     index_name=es_index_name, 
-                    doc_id=tweet.data['id'], 
-                    doc_data=tweet.data
+                    doc_id=doc['id'], 
+                    doc_data=doc
                 ) 
 
 def build_tweet_collection(neo_connection: NeoConnection, neo_client: Client, es_client: Elasticsearch, tweet_ids, start_date, relations, es_index_name):
@@ -59,13 +67,22 @@ def build_tweet_collection(neo_connection: NeoConnection, neo_client: Client, es
             create_author(neo_connection, author.data['id'], tweet_id)
 
         # Format data for ES ingestion
+        doc = {
+            'type': 'tweet',
+            'id': tweet.data['id'],
+            'created_on': tweet.data['created_at'],
+            'likes': tweet.data['public_metrics']['like_count'],
+            'retweets': tweet.data['public_metrics']['retweet_count'],
+            'replies': tweet.data['public_metrics']['reply_count'],
+            'text': tweet.data['text']
+        }
 
         # Merge into elastic search (handles both update or creation)
         merge_doc(
             client=es_client, 
             index_name=es_index_name, 
-            doc_id=tweet.data['id'], 
-            doc_data=tweet.data
+            doc_id=doc['id'], 
+            doc_data=doc
         ) 
 
 def build_username_collection(neo_connection: NeoConnection, neo_client: Client, es_client: Elasticsearch, usernames, start_date, relations, es_index_name):
@@ -83,17 +100,29 @@ def build_username_collection(neo_connection: NeoConnection, neo_client: Client,
         if user.data is None:
             continue
 
+        # Neo4j
         if user_exists(neo_connection, user.data['id']):
             update_user(neo_connection.get_session(), user.data);    
         else:
-            create_user(neo_connection, neo_client, user.data, start_date, relations, es_index_name)
+            create_user(neo_connection, neo_client, es_client, user.data, start_date, relations, es_index_name)
 
-        # Format data for ES ingestion
-        
+        # Elasticsearch 
+        doc = {
+            'type': 'user',
+            'id': user.data['id'],
+            'created_on': str(user.data['created_at'])[0:10],
+            'username': user.data['username'],
+            'name': user.data['name'],
+            'description': user.data['description'],
+            'followers': user.data['public_metrics']['followers_count'],
+            'following': user.data['public_metrics']['following_count'],
+            'tweet_count': user.data['public_metrics']['tweet_count']
+        } 
+
         # Merge into elastic search (handles both update or creation)
         merge_doc(
             client=es_client, 
             index_name=es_index_name, 
-            doc_id=user.data['id'], 
-            doc_data=user.data
+            doc_id=doc['id'], 
+            doc_data=doc
         ) 

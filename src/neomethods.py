@@ -1,5 +1,7 @@
 from .neoconnection import NeoConnection
 from tweepy import Paginator
+from elasticsearch import Elasticsearch
+from .elasticmethods import merge_doc
 
 def update_tweet(session, tweet_data):
     # Updates a tweet which already exists within the neo4j database
@@ -101,14 +103,14 @@ def create_tweet(connection: NeoConnection, tweet_data, relations, es_index_name
                     probability = annotation['probability']
                 )
 
-def create_user(connection:NeoConnection, client, user_data, start_date, relations, es_index_name):
+def create_user(neo_connection:NeoConnection, neo_client, es_client: Elasticsearch, user_data, start_date, relations, es_index_name):
     # Creates a new user within the neo4j session provided. 
     # Also pulls all data relating to the user including their tweets and followers.
-    if user_exists(connection, user_data['id']):
+    if user_exists(neo_connection, user_data['id']):
         return
 
     # Import user
-    connection.get_session().run(
+    neo_connection.get_session().run(
         "CREATE (:User{\
         username: $username,\
         id: $id,\
@@ -129,7 +131,7 @@ def create_user(connection:NeoConnection, client, user_data, start_date, relatio
     )
 
     # Link user to aux node
-    connection.get_session().run(
+    neo_connection.get_session().run(
         "MERGE (u:User {id: $user_id})"
         "MERGE (a:Auxiliary {name: $index_name})"
         "MERGE (u)-[:BELONGS]->(a)",
@@ -138,13 +140,13 @@ def create_user(connection:NeoConnection, client, user_data, start_date, relatio
 
     # Import followers
     if "follow" in relations:
-        followers = client.get_users_followers(id=user_data["id"])
+        followers = neo_client.get_users_followers(id=user_data["id"])
         for follower in followers.data:
-            create_follower(connection, follower, user_data['id'])
+            create_follower(neo_connection, follower, user_data['id'])
 
     # Import tweets
     for tweets in Paginator(
-                client.get_users_tweets,
+                neo_client.get_users_tweets,
                 id=user_data["id"],
                 start_time=start_date,
                 max_results=100,
@@ -152,21 +154,40 @@ def create_user(connection:NeoConnection, client, user_data, start_date, relatio
     ):
         if tweets.data:
             for tweet in tweets.data:
-                create_tweet(connection, tweet, relations, es_index_name)
-                create_author(connection, user_data['id'], tweet['id'])
+                create_tweet(neo_connection, tweet, relations, es_index_name)
+                create_author(neo_connection, user_data['id'], tweet['id'])
+
+                # Format data for ES ingestion
+                doc = {
+                    'type': 'tweet',
+                    'id': tweet.data['id'],
+                    'created_on': tweet.data['created_at'],
+                    'likes': tweet.data['public_metrics']['like_count'],
+                    'retweets': tweet.data['public_metrics']['retweet_count'],
+                    'replies': tweet.data['public_metrics']['reply_count'],
+                    'text': tweet.data['text']
+                }
+
+                # Merge into elastic search (handles both update or creation)
+                merge_doc(
+                    client=es_client, 
+                    index_name=es_index_name, 
+                    doc_id=doc['id'], 
+                    doc_data=doc
+                )
 
                 # Import likes/retweets
                 if "like" in relations:
-                    likes = client.get_liking_users(id=tweet['id'])
+                    likes = neo_client.get_liking_users(id=tweet['id'])
                     if likes.data:
                         for tmp_user in likes.data:
-                            create_tweet_relation(connection, tmp_user, tweet['id'], 'LIKED')
+                            create_tweet_relation(neo_connection, tmp_user, tweet['id'], 'LIKED')
 
                 if "retweet" in relations:
-                    retweets = client.get_retweeters(id=tweet['id'])
+                    retweets = neo_client.get_retweeters(id=tweet['id'])
                     if retweets.data:
                         for tmp_user in retweets.data:
-                            create_tweet_relation(connection, tmp_user, tweet['id'], 'RETWEETED')
+                            create_tweet_relation(neo_connection, tmp_user, tweet['id'], 'RETWEETED')
 
 def create_author(connection: NeoConnection, user_id, tweet_id):
     # Creates author relationship between provided user and tweet
