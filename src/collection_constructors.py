@@ -24,6 +24,16 @@ def build_hashtag_collection(neo_connection: NeoConnection, neo_client: Client, 
             for tweet in tweets.data:
                 create_tweet(neo_connection, tweet, relations, es_index_name)
 
+                # Format data for ES ingestion
+
+                # Merge into elastic search (handles both update or creation)
+                merge_doc(
+                    client=es_client, 
+                    index_name=es_index_name, 
+                    doc_id=tweet.data['id'], 
+                    doc_data=tweet.data
+                ) 
+
 def build_tweet_collection(neo_connection: NeoConnection, neo_client: Client, es_client: Elasticsearch, tweet_ids, start_date, relations, es_index_name):
     all_usernames = []
     session = neo_connection.get_session()
@@ -43,14 +53,24 @@ def build_tweet_collection(neo_connection: NeoConnection, neo_client: Client, es
             build_username_collection(neo_connection, neo_client, author_username, start_date, relations, es_index_name)
 
         if tweet_exists(neo_connection, tweet_id):       # Tweet existent in graph
-            update_tweet(session, tweet.data)  
+            update_tweet(session, tweet.data)                           
         else:
             create_tweet(neo_connection, tweet.data, relations, es_index_name)
             create_author(neo_connection, author.data['id'], tweet_id)
 
-def build_username_collection(connection: NeoConnection, client, usernames, start_date, relations, es_index_name):
+        # Format data for ES ingestion
+
+        # Merge into elastic search (handles both update or creation)
+        merge_doc(
+            client=es_client, 
+            index_name=es_index_name, 
+            doc_id=tweet.data['id'], 
+            doc_data=tweet.data
+        ) 
+
+def build_username_collection(neo_connection: NeoConnection, neo_client: Client, es_client: Elasticsearch, usernames, start_date, relations, es_index_name):
     for username in usernames:
-        user = client.get_user(
+        user = neo_client.get_user(
             username=username,
             user_fields=[
                 "created_at",
@@ -63,7 +83,17 @@ def build_username_collection(connection: NeoConnection, client, usernames, star
         if user.data is None:
             continue
 
-        if user_exists(connection, user.data['id']):
-            update_user(connection.get_session(), user.data);    
+        if user_exists(neo_connection, user.data['id']):
+            update_user(neo_connection.get_session(), user.data);    
         else:
-            create_user(connection, client, user.data, start_date, relations, es_index_name)
+            create_user(neo_connection, neo_client, user.data, start_date, relations, es_index_name)
+
+        # Format data for ES ingestion
+        
+        # Merge into elastic search (handles both update or creation)
+        merge_doc(
+            client=es_client, 
+            index_name=es_index_name, 
+            doc_id=user.data['id'], 
+            doc_data=user.data
+        ) 

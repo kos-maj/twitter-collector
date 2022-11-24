@@ -6,6 +6,7 @@ from pick import pick
 from src.neoconnection import NeoConnection
 from src.neomethods import extract_identifiers
 from src.collection_constructors import build_tweet_collection, build_username_collection, build_hashtag_collection
+from src.elasticmethods import create_index, delete_index
 from os import system
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -55,6 +56,8 @@ def main():
     # relation_options = ['follow', 'retweet', 'like', 'embed', 'mention']
     relation_options = ['follow', 'embed', 'mention']
     es_index_name = 'tweet-index'
+
+    create_index(es_client, index_name=es_index_name)       # If index exists this is handled within the function
 
     print("[+] Extracting data and building network. This may take some time...")
     if(data_type == data_options[0]):                                   # Build network from usernames
