@@ -165,7 +165,8 @@ def create_user(neo_connection:NeoConnection, neo_client, es_client: Elasticsear
                     'likes': tweet.data['public_metrics']['like_count'],
                     'retweets': tweet.data['public_metrics']['retweet_count'],
                     'replies': tweet.data['public_metrics']['reply_count'],
-                    'text': tweet.data['text']
+                    'text': tweet.data['text'],
+                    'api_data': tweet.data
                 }
 
                 # Merge into elastic search (handles both update or creation)

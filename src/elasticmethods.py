@@ -9,8 +9,18 @@ def create_index(client: Elasticsearch, index_name):
     if client is None or client.indices.exists(index=index_name):
         return 0
     
+    mapping = {
+        "mappings": {
+            "_meta": {
+                "class": "social_network"
+            }
+        }
+    }     
     try:
-        client.indices.create(index='users')
+        client.indices.create(
+            index=index_name,
+            body=mapping
+        )
     except Exception as e:
         print('[-] Error: ', e)
         return 0

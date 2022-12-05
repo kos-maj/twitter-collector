@@ -31,7 +31,8 @@ def build_hashtag_collection(neo_connection: NeoConnection, neo_client: Client, 
                     'likes': tweet.data['public_metrics']['like_count'],
                     'retweets': tweet.data['public_metrics']['retweet_count'],
                     'replies': tweet.data['public_metrics']['reply_count'],
-                    'text': tweet.data['text']
+                    'text': tweet.data['text'],
+                    'api_data': tweet.data
                 }
 
                 # Merge into elastic search (handles both update or creation)
@@ -74,7 +75,8 @@ def build_tweet_collection(neo_connection: NeoConnection, neo_client: Client, es
             'likes': tweet.data['public_metrics']['like_count'],
             'retweets': tweet.data['public_metrics']['retweet_count'],
             'replies': tweet.data['public_metrics']['reply_count'],
-            'text': tweet.data['text']
+            'text': tweet.data['text'],
+            'api_data': tweet.data
         }
 
         # Merge into elastic search (handles both update or creation)
@@ -116,7 +118,8 @@ def build_username_collection(neo_connection: NeoConnection, neo_client: Client,
             'description': user.data['description'],
             'followers': user.data['public_metrics']['followers_count'],
             'following': user.data['public_metrics']['following_count'],
-            'tweet_count': user.data['public_metrics']['tweet_count']
+            'tweet_count': user.data['public_metrics']['tweet_count'],
+            'api_data': user.data
         } 
 
         # Merge into elastic search (handles both update or creation)
